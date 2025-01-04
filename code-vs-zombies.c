@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 enum constraints { max_human = 99, max_zombie = 99 };
 
@@ -20,9 +21,10 @@ struct game_state {
   struct point zombie_next[max_zombie];
 };
 
-/**
- * Save humans, destroy zombies!
- **/
+double elapsed(clock_t start_t, clock_t end_t) {
+   fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC); 
+   return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
+}
 
 void dump_game_state(const struct game_state *src) {
   fprintf(stderr, "Ash (%d,%d)\n", src->ash.x, src->ash.x);
@@ -47,6 +49,15 @@ void dump_game_state(const struct game_state *src) {
       }
     }
   }
+}
+
+void move(const struct game_state *src) {
+    clock_t start_t, end_t;
+    start_t = clock();
+    dump_game_state(src);
+    printf("0 0\n"); 
+    end_t = clock();
+    fprintf(stderr, "elapsed: %.3f ms\n", elapsed(start_t, end_t));
 }
 
 int main() {
@@ -93,8 +104,7 @@ int main() {
     // Write an action using printf(). DON'T FORGET THE TRAILING \n
     // To debug: fprintf(stderr, "Debug messages...\n");
 
-    dump_game_state(&game_state);
-    printf("0 0\n"); // Your destination coordinates
+    move(&game_state);
   }
 
   return 0;
