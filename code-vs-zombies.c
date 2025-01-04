@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 
-enum constraints { max_human = 99, max_zombie = 99 };
+enum constraints { max_human = 99, max_zombie = 99, response_time_ms = 100 };
 
 struct point {
   int x, y;
@@ -21,13 +21,28 @@ struct game_state {
   struct point zombie_next[max_zombie];
 };
 
-double elapsed(clock_t start_t, clock_t end_t) {
-   fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC); 
-   return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
+struct strategy {
+  int random_moves_count;
+  int random_moves[3];
+  int target_zombite_id;
+};
+
+long scoring(const struct game_state *game_state) {
+  long result = 0;
+
+  return result;
 }
 
-void dump_game_state(const struct game_state *src) {
-  fprintf(stderr, "Ash (%d,%d)\n", src->ash.x, src->ash.x);
+double elapsed(clock_t start_t, clock_t end_t) {
+  fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
+  return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
+}
+
+void dump_game_state_ash(const struct game_state *src) {
+  fprintf(stderr, "Ash: (%d,%d)\n", src->ash.x, src->ash.x);
+}
+
+void dump_game_state_humans(const struct game_state *src) {
   fprintf(stderr, "H: ");
   for (int i = 0; i < src->human_count; ++i) {
     if (i != src->human_count - 1) {
@@ -37,32 +52,45 @@ void dump_game_state(const struct game_state *src) {
       fprintf(stderr, "%d:(%d,%d)\n", src->human_id[i], src->human[i].x,
               src->human[i].y);
     }
-    for (int i = 0; i < src->zombie_count; ++i) {
-      if (i != src->zombie_count - 1) {
-        fprintf(stderr, "%d:(%d,%d)->(%d,%d),", src->zombie_id[i],
-                src->zombie[i].x, src->zombie[i].y, src->zombie_next[i].x,
-                src->zombie_next[i].y);
-      } else {
-        fprintf(stderr, "%d:(%d,%d)->(%d,%d)\n", src->zombie_id[i],
-                src->zombie[i].x, src->zombie[i].y, src->zombie_next[i].x,
-                src->zombie_next[i].y);
-      }
+  }
+}
+
+void dump_game_state_zombies(const struct game_state *src) {
+  fprintf(stderr, "Z: ");
+  for (int i = 0; i < src->zombie_count; ++i) {
+    if (i != src->zombie_count - 1) {
+      fprintf(stderr, "%d:(%d,%d)->(%d,%d),", src->zombie_id[i],
+              src->zombie[i].x, src->zombie[i].y, src->zombie_next[i].x,
+              src->zombie_next[i].y);
+    } else {
+      fprintf(stderr, "%d:(%d,%d)->(%d,%d)\n", src->zombie_id[i],
+              src->zombie[i].x, src->zombie[i].y, src->zombie_next[i].x,
+              src->zombie_next[i].y);
     }
   }
 }
 
+void dump_game_state(const struct game_state *src) {
+  dump_game_state_ash(src);
+  dump_game_state_humans(src);
+  dump_game_state_zombies(src);
+}
+
+void move2(const struct game_state *src) {}
+
 void move(const struct game_state *src) {
-    clock_t start_t, end_t;
-    start_t = clock();
-    dump_game_state(src);
-    printf("0 0\n"); 
-    end_t = clock();
-    fprintf(stderr, "elapsed: %.3f ms\n", elapsed(start_t, end_t));
+  clock_t start_t, end_t;
+  start_t = clock();
+  dump_game_state(src);
+  printf("0 0\n");
+  end_t = clock();
+  fprintf(stderr, "elapsed: %.3f ms\n", elapsed(start_t, end_t));
 }
 
 int main() {
 
   struct game_state game_state;
+  int zombie_count_at_start = -1;
 
   // game loop
   while (1) {
@@ -71,9 +99,11 @@ int main() {
     scanf("%d%d", &x, &y);
     game_state.ash.x = x;
     game_state.ash.y = y;
+
     int human_count;
     scanf("%d", &human_count);
     game_state.human_count = human_count;
+
     for (int i = 0; i < human_count; i++) {
       int human_id;
       int human_x;
@@ -83,9 +113,14 @@ int main() {
       game_state.human[i].x = human_x;
       game_state.human[i].y = human_y;
     }
+
     int zombie_count;
     scanf("%d", &zombie_count);
     game_state.zombie_count = zombie_count;
+    if (zombie_count_at_start != -1) {
+      zombie_count_at_start = zombie_count;
+    }
+
     for (int i = 0; i < zombie_count; i++) {
       int zombie_id;
       int zombie_x;
