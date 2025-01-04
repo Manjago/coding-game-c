@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 
-enum constraints { max_human = 99, max_zombie = 99, response_time_ms = 100 };
+enum constraints { max_human = 99, max_zombie = 99, response_time_ms = 90 };
 
 struct point {
   int x, y;
@@ -23,8 +23,8 @@ struct game_state {
 
 struct strategy {
   int random_moves_count;
-  int random_moves[3];
-  int target_zombite_id;
+  struct point random_moves[3];
+  int target_zombie_id;
 };
 
 long scoring(const struct game_state *game_state) {
@@ -76,7 +76,25 @@ void dump_game_state(const struct game_state *src) {
   dump_game_state_zombies(src);
 }
 
-void move2(const struct game_state *src) {}
+bool has_time(const clock_t start_t) {
+  clock_t end_t = clock();
+  double elapsed_ms = elapsed(start_t, end_t);
+  return elapsed_ms < response_time_ms;
+}
+
+void generate_a_random_strategy(struct strategy *result) {
+  // todo
+}
+
+void move2(const struct game_state *src, const struct strategy initial_strategy,
+           const clock_t start_t) {
+  struct strategy current_strategy = initial_strategy;
+  struct strategy pretender_strategy;
+
+  while (has_time(start_t)) {
+    generate_a_random_strategy(&pretender_strategy);
+  }
+}
 
 void move(const struct game_state *src) {
   clock_t start_t, end_t;
@@ -91,6 +109,9 @@ int main() {
 
   struct game_state game_state;
   int zombie_count_at_start = -1;
+  struct strategy do_nothing_strategy;
+  do_nothing_strategy.random_moves_count = 0;
+  do_nothing_strategy.target_zombie_id = -1;
 
   // game loop
   while (1) {
