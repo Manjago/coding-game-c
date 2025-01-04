@@ -1,0 +1,1 @@
+gcc -Wextra -g code-vs-zombies.c -lpthread -ldl -lm -o code-vs-zombies 

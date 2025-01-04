@@ -1,0 +1,4 @@
+gcc -version
+.vscode
+code-vs-zombies
+build
