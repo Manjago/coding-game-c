@@ -1,10 +1,22 @@
+/*
+Inspired by
+https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
+*/
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 
-enum constraints { max_human = 99, max_zombie = 99, response_time_ms = 90 };
+enum constraints {
+  max_human = 99,
+  max_zombie = 99,
+  response_time_ms = 90,
+  max_x_exclusive = 16000,
+  max_y_exclusive = 9000,
+  max_ash_move = 1000
+};
 
 struct point {
   int x, y;
@@ -38,42 +50,42 @@ double elapsed(clock_t start_t, clock_t end_t) {
   return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
 }
 
-void dump_game_state_ash(const struct game_state *src) {
-  fprintf(stderr, "Ash: (%d,%d)\n", src->ash.x, src->ash.x);
+void dump_game_state_ash(const struct game_state *state) {
+  fprintf(stderr, "Ash: (%d,%d)\n", state->ash.x, state->ash.x);
 }
 
-void dump_game_state_humans(const struct game_state *src) {
+void dump_game_state_humans(const struct game_state *state) {
   fprintf(stderr, "H: ");
-  for (int i = 0; i < src->human_count; ++i) {
-    if (i != src->human_count - 1) {
-      fprintf(stderr, "%d:(%d,%d),", src->human_id[i], src->human[i].x,
-              src->human[i].y);
+  for (int i = 0; i < state->human_count; ++i) {
+    if (i != state->human_count - 1) {
+      fprintf(stderr, "%d:(%d,%d),", state->human_id[i], state->human[i].x,
+              state->human[i].y);
     } else {
-      fprintf(stderr, "%d:(%d,%d)\n", src->human_id[i], src->human[i].x,
-              src->human[i].y);
+      fprintf(stderr, "%d:(%d,%d)\n", state->human_id[i], state->human[i].x,
+              state->human[i].y);
     }
   }
 }
 
-void dump_game_state_zombies(const struct game_state *src) {
+void dump_game_state_zombies(const struct game_state *state) {
   fprintf(stderr, "Z: ");
-  for (int i = 0; i < src->zombie_count; ++i) {
-    if (i != src->zombie_count - 1) {
-      fprintf(stderr, "%d:(%d,%d)->(%d,%d),", src->zombie_id[i],
-              src->zombie[i].x, src->zombie[i].y, src->zombie_next[i].x,
-              src->zombie_next[i].y);
+  for (int i = 0; i < state->zombie_count; ++i) {
+    if (i != state->zombie_count - 1) {
+      fprintf(stderr, "%d:(%d,%d)->(%d,%d),", state->zombie_id[i],
+              state->zombie[i].x, state->zombie[i].y, state->zombie_next[i].x,
+              state->zombie_next[i].y);
     } else {
-      fprintf(stderr, "%d:(%d,%d)->(%d,%d)\n", src->zombie_id[i],
-              src->zombie[i].x, src->zombie[i].y, src->zombie_next[i].x,
-              src->zombie_next[i].y);
+      fprintf(stderr, "%d:(%d,%d)->(%d,%d)\n", state->zombie_id[i],
+              state->zombie[i].x, state->zombie[i].y, state->zombie_next[i].x,
+              state->zombie_next[i].y);
     }
   }
 }
 
-void dump_game_state(const struct game_state *src) {
-  dump_game_state_ash(src);
-  dump_game_state_humans(src);
-  dump_game_state_zombies(src);
+void dump_game_state(const struct game_state *state) {
+  dump_game_state_ash(state);
+  dump_game_state_humans(state);
+  dump_game_state_zombies(state);
 }
 
 bool has_time(const clock_t start_t) {
@@ -82,7 +94,34 @@ bool has_time(const clock_t start_t) {
   return elapsed_ms < response_time_ms;
 }
 
+struct point move_from_destination(struct point from, struct point to) {
+  int a = from.x - to.x;
+  int b = from.y - to.y;
+  double real_dist = sqrt(a*a + b*b);
+  if (real_dist <= max_ash_move) {
+    return to;
+  };
+
+  double coeff = real_dist / max_ash_move;
+  int a_mod = a / coeff;
+  int b_mod = b / coeff;
+  struct point result = {from.x + a_mod, from.y + b_mod};
+  return result;
+}
+
+/*
+repeat X times (X chosen randomly between 0 and 3)
+    move to a random position
+for each
+zombie still alive (the order of the zombies is also chosen randomly)
+    move toward the zombie until he's killed
+*/
 void generate_a_random_strategy(struct strategy *result) {
+  int x = rand() % 4;
+  result->random_moves_count = x;
+
+
+
   // todo
 }
 
@@ -91,14 +130,20 @@ long simulate_the_strategy(struct strategy *result) {
   return 0;
 }
 
-struct point apply_the_first_move(const struct strategy * strategy) {
-  //todo
+struct point apply_the_first_move(const struct strategy *strategy) {
+  // todo
   const struct point move = {0, 0};
   return move;
 }
 
 void sendMove(const struct point move) { printf("%d %d\n", move.x, move.y); }
 
+/*
+while there is some time left
+    generate a random strategy
+    simulate the strategy
+apply the first move of the best strategy seen so far
+*/
 void move2(const struct game_state *src, const struct strategy initial_strategy,
            const clock_t start_t) {
   struct strategy current_strategy = initial_strategy;
@@ -128,6 +173,7 @@ void move(const struct game_state *src) {
 }
 
 int main() {
+  srand(time(NULL));
 
   struct game_state game_state;
   int zombie_count_at_start = -1;
