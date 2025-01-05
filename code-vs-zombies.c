@@ -120,6 +120,10 @@ void generate_a_random_strategy(struct strategy *result) {
   int x = rand() % 4;
   result->random_moves_count = x;
 
+  for (int i = 0; i < x; ++i) {
+    
+  }
+
 
 
   // todo
