@@ -35,8 +35,8 @@ struct game_state {
 
 struct strategy {
   int random_moves_count;
-  struct point random_moves[3];
   int target_zombie_id;
+  struct point first_move;
 };
 
 long scoring(const struct game_state *game_state) {
@@ -116,17 +116,11 @@ for each
 zombie still alive (the order of the zombies is also chosen randomly)
     move toward the zombie until he's killed
 */
-void generate_a_random_strategy(struct strategy *result) {
-  int x = rand() % 4;
+void generate_a_random_strategy(const struct game_state * state, struct strategy * result) {
+  const int x = rand() % 4;
   result->random_moves_count = x;
-
-  for (int i = 0; i < x; ++i) {
-    
-  }
-
-
-
-  // todo
+  const int zombie_index = rand() % state->zombie_count;
+  result->target_zombie_id = zombie_index;
 }
 
 long simulate_the_strategy(struct strategy *result) {
@@ -155,7 +149,7 @@ void move2(const struct game_state *src, const struct strategy initial_strategy,
   struct strategy pretender_strategy;
 
   while (has_time(start_t)) {
-    generate_a_random_strategy(&pretender_strategy);
+    generate_a_random_strategy(src, &pretender_strategy);
     long scoring = simulate_the_strategy(&pretender_strategy);
     if (scoring > current_scoring) {
       current_scoring = scoring;
