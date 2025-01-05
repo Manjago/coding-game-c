@@ -138,7 +138,7 @@ void simulate_turn(struct game_state *simulated_state) {
 }
 
 long simulate_the_strategy(const struct game_state *initial_state,
-                           struct strategy *result) {
+                           struct strategy *result) { 
   struct game_state simulated_state = *initial_state;
   for (int i = 0; i < result->random_moves_count; ++i) {
     const struct point random_dest = {rand() % max_x_exclusive,
