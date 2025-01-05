@@ -2,12 +2,12 @@
 Inspired by
 https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
 */
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 
 enum constraints {
   max_human = 99,
@@ -32,6 +32,15 @@ struct game_state {
   struct point zombie[max_zombie];
   struct point zombie_next[max_zombie];
 };
+
+int zombie_index_by_id(const struct game_state *state, int zombie_id) {
+  for (int i = 0; i < state->zombie_count; ++i) {
+    if (state->zombie_id[i] == zombie_id) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 struct strategy {
   int random_moves_count;
@@ -97,14 +106,14 @@ bool has_time(const clock_t start_t) {
 struct point move_from_destination(struct point from, struct point to) {
   int a = from.x - to.x;
   int b = from.y - to.y;
-  double real_dist = sqrt(a*a + b*b);
+  double real_dist = sqrt(a * a + b * b);
   if (real_dist <= max_ash_move) {
     return to;
   };
 
   double coeff = real_dist / max_ash_move;
-  int a_mod = a / coeff;
-  int b_mod = b / coeff;
+  int a_mod = (int)(a / coeff);
+  int b_mod = (int)(b / coeff);
   struct point result = {from.x + a_mod, from.y + b_mod};
   return result;
 }
@@ -116,16 +125,36 @@ for each
 zombie still alive (the order of the zombies is also chosen randomly)
     move toward the zombie until he's killed
 */
-void generate_a_random_strategy(const struct game_state * state, struct strategy * result) {
+void generate_a_random_strategy(const struct game_state *state,
+                                struct strategy *result) {
   const int x = rand() % 4;
   result->random_moves_count = x;
   const int zombie_index = rand() % state->zombie_count;
   result->target_zombie_id = zombie_index;
 }
 
-long simulate_the_strategy(struct strategy *result) {
+void simulate_turn(struct game_state *simulated_state) {
   // todo
-  return 0;
+}
+
+long simulate_the_strategy(const struct game_state *initial_state,
+                           struct strategy *result) {
+  struct game_state simulated_state = *initial_state;
+  for (int i = 0; i < result->random_moves_count; ++i) {
+    const struct point random_dest = {rand() % max_x_exclusive,
+                                      rand() % max_y_exclusive};
+    const struct point actual_dest =
+        move_from_destination(simulated_state.ash, random_dest);
+    if (i == 0) {
+      result->first_move = actual_dest;
+    }
+    simulate_turn(&simulated_state);
+  }
+
+  int target_zombie_index = zombie_index_by_id(&simulated_state, result->target_zombie_id);
+
+      // todo
+      return 0;
 }
 
 struct point apply_the_first_move(const struct strategy *strategy) {
@@ -140,15 +169,15 @@ while there is some time left
     simulate the strategy
 apply the first move of the best strategy seen so far
 */
-void move2(const struct game_state *src, const struct strategy initial_strategy,
-           const clock_t start_t) {
+void move2(const struct game_state *actual_state,
+           const struct strategy initial_strategy, const clock_t start_t) {
   struct strategy current_strategy = initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
 
   while (has_time(start_t)) {
-    generate_a_random_strategy(src, &pretender_strategy);
-    long scoring = simulate_the_strategy(&pretender_strategy);
+    generate_a_random_strategy(actual_state, &pretender_strategy);
+    long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
     if (scoring > current_scoring) {
       current_scoring = scoring;
       current_strategy = pretender_strategy;
@@ -169,7 +198,7 @@ void move(const struct game_state *src) {
 }
 
 int main() {
-  srand(time(NULL));
+  srand((unsigned int)time(NULL));
 
   struct game_state game_state;
   int zombie_count_at_start = -1;
