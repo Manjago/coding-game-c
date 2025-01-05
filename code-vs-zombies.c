@@ -129,9 +129,7 @@ long simulate_the_strategy(struct strategy *result) {
 }
 
 struct point apply_the_first_move(const struct strategy *strategy) {
-  // todo
-  const struct point move = {0, 0};
-  return move;
+  return strategy->first_move;
 }
 
 void sendMove(const struct point move) { printf("%d %d\n", move.x, move.y); }
