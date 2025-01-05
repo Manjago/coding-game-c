@@ -2,3 +2,5 @@ gcc -version
 .vscode
 code-vs-zombies
 build
+.clj-kondo
+.lsp
