@@ -86,14 +86,36 @@ void generate_a_random_strategy(struct strategy *result) {
   // todo
 }
 
+long simulate_the_strategy(struct strategy *result) {
+  // todo
+  return 0;
+}
+
+struct point apply_the_first_move(const struct strategy * strategy) {
+  //todo
+  const struct point move = {0, 0};
+  return move;
+}
+
+void sendMove(const struct point move) { printf("%d %d\n", move.x, move.y); }
+
 void move2(const struct game_state *src, const struct strategy initial_strategy,
            const clock_t start_t) {
   struct strategy current_strategy = initial_strategy;
+  long current_scoring = -1;
   struct strategy pretender_strategy;
 
   while (has_time(start_t)) {
     generate_a_random_strategy(&pretender_strategy);
+    long scoring = simulate_the_strategy(&pretender_strategy);
+    if (scoring > current_scoring) {
+      current_scoring = scoring;
+      current_strategy = pretender_strategy;
+    };
   }
+
+  const struct point move = apply_the_first_move(&pretender_strategy);
+  sendMove(move);
 }
 
 void move(const struct game_state *src) {
