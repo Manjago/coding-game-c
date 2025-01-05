@@ -138,7 +138,7 @@ void simulate_turn(struct game_state *simulated_state) {
 }
 
 long simulate_the_strategy(const struct game_state *initial_state,
-                           struct strategy *result) { 
+                           struct strategy *result) {
   struct game_state simulated_state = *initial_state;
   for (int i = 0; i < result->random_moves_count; ++i) {
     const struct point random_dest = {rand() % max_x_exclusive,
@@ -151,10 +151,11 @@ long simulate_the_strategy(const struct game_state *initial_state,
     simulate_turn(&simulated_state);
   }
 
-  int target_zombie_index = zombie_index_by_id(&simulated_state, result->target_zombie_id);
+  int target_zombie_index =
+      zombie_index_by_id(&simulated_state, result->target_zombie_id);
 
-      // todo
-      return 0;
+  // todo
+  return 0;
 }
 
 struct point apply_the_first_move(const struct strategy *strategy) {
