@@ -22,6 +22,10 @@ struct point {
   int x, y;
 };
 
+int dist2(const struct point a, const struct point b) {
+  return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+}
+
 struct game_state {
   struct point ash;
   int human_count;
@@ -42,6 +46,25 @@ int zombie_index_by_id(const struct game_state *state, int zombie_id) {
   return -1;
 }
 
+struct point find_nearest_human(const struct game_state *state,
+                                int zombie_index) {
+  int answer_dist = -1;
+  int answer_human_index = -1;
+  for (int i = 0; i < state->human_count; ++i) {
+    int current_dist = dist2(state->zombie[zombie_index], state->human[i]);
+    if (answer_dist == -1 || current_dist < answer_dist) {
+      current_dist = answer_dist;
+      answer_human_index = i;
+    }
+  }
+
+  if (answer_human_index == -1) {
+    return state->zombie[zombie_index];
+  } else {
+    return state->human[answer_human_index];
+  }
+}
+
 struct strategy {
   int random_moves_count;
   int target_zombie_id;
@@ -50,7 +73,7 @@ struct strategy {
 
 long scoring(const struct game_state *game_state) {
   long result = 0;
-
+  // todo
   return result;
 }
 
@@ -133,8 +156,22 @@ void generate_a_random_strategy(const struct game_state *state,
   result->target_zombie_id = zombie_index;
 }
 
-void simulate_turn(struct game_state *simulated_state) {
+void simulate_turn(struct game_state *simulated_state,
+                   const struct point ash_move) {
   // todo
+
+  /*
+  1. Zombies move towards their targets.
+  2. Ash moves towards his target.
+  3. Any zombie within a 2000 unit range around Ash is destroyed.
+  4. Zombies eat any human they share coordinates with.
+  */
+
+  /* step 1 */
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    find_nearest_human(simulated_state, i);
+    // todo
+  }
 }
 
 long simulate_the_strategy(const struct game_state *initial_state,
@@ -148,14 +185,25 @@ long simulate_the_strategy(const struct game_state *initial_state,
     if (i == 0) {
       result->first_move = actual_dest;
     }
-    simulate_turn(&simulated_state);
+    simulate_turn(&simulated_state, actual_dest);
   }
 
-  int target_zombie_index =
-      zombie_index_by_id(&simulated_state, result->target_zombie_id);
+  int target_zombie_index;
+  while ((target_zombie_index = zombie_index_by_id(
+              &simulated_state, result->target_zombie_id)) != -1) {
+    const struct point go_to = simulated_state.zombie_next[target_zombie_index];
 
-  // todo
-  return 0;
+    const struct point actual_dest =
+        move_from_destination(simulated_state.ash, go_to);
+
+    if (result->random_moves_count == 0) {
+      result->first_move = actual_dest;
+    }
+
+    simulate_turn(&simulated_state, actual_dest);
+  }
+
+  return scoring(&simulated_state);
 }
 
 struct point apply_the_first_move(const struct strategy *strategy) {
