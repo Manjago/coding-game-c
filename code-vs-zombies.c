@@ -44,13 +44,11 @@ int index_by_value(int arr[], int size, int value) {
 }
 
 int sum_ones(int arr[], int size) {
-  int count = 0;
+  int sum = 0;
   for (int i = 0; i < size; i++) {
-    if (arr[i] == 1) {
-      count++;
-    }
+    sum += arr[i];
   }
-  return count;
+  return sum;
 }
 
 enum constraints {
@@ -503,11 +501,29 @@ void test_index_by_value() {
   assert(0 == index_by_value(d, 3, 2));
 }
 
+void test_sum_ones() {
+  int a[4] = {1, 0, 1, 1};
+  assert(3 == sum_ones(a, 4));
+
+  int b[0] = {};
+  assert(0 == sum_ones(b, 0));
+
+  int c[5] = {0, 0, 0, 0, 0};
+  assert(0 == sum_ones(c, 5));
+
+  int d[3] = {1, 1, 1};
+  assert(3 == sum_ones(d, 3));
+
+  int e[6] = {0, 0, 1, 0, 1, 1};
+  assert(3 == sum_ones(e, 6));
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
   test_point_equals();
   test_index_by_value();
+  test_sum_ones();
 }
 
 int main() {
