@@ -49,7 +49,9 @@ struct point {
 };
 
 int dist2(const struct point a, const struct point b) {
-  return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+  const int dx = a.x - b.x;
+  const int dy = a.y - b.y;
+  return dx * dx + dy * dy;
 }
 
 bool point_equals(const struct point a, const struct point b) {
@@ -428,7 +430,7 @@ void game_loop() {
   }
 }
 
-void tests() {
+void test_get_fibo() {
   assert(1 == get_fibo(-10));
   assert(1 == get_fibo(-1));
   assert(1 == get_fibo(0));
@@ -437,6 +439,55 @@ void tests() {
   assert(267914296 == get_fibo(40));
   assert(267914296 == get_fibo(41));
   assert(267914296 == get_fibo(50));
+}
+
+void test_dist2() {
+  const struct point a = {0, 0};
+  const struct point b = {3, 4};
+  assert(25 == dist2(a, b));
+  assert(25 == dist2(b, a));
+
+  const struct point c = {1, 2};
+  const struct point d = {5, 7};
+  assert(41 == dist2(c, d));
+  assert(41 == dist2(d, c));
+
+  const struct point e = {-1, 2};
+  const struct point f = {3, -4};
+  assert(52 == dist2(e, f));
+  assert(52 == dist2(f, e));
+
+  const struct point g = {0, 0};
+  const struct point h = {0, 0};
+  assert(0 == dist2(g, h));
+  assert(0 == dist2(h, g));
+}
+
+void test_point_equals() {
+  const struct point a = {1, 2};
+  const struct point b = {3, 4};
+  assert(!point_equals(a, b));
+
+  const struct point c = {5, 6};
+  const struct point d = {5, 6};
+  assert(point_equals(c, d));
+
+  const struct point e = {5, 6};
+  const struct point f = {6, 5};
+  assert(!point_equals(e, f));
+
+  const struct point g = {-1, 2};
+  const struct point h = {-1, 2};
+  assert(point_equals(g, h));
+
+  const struct point i = {0, 0};
+  const struct point j = {0, 0};
+  assert(point_equals(i, j));
+}
+
+void tests() {
+  test_get_fibo();
+  test_dist2();
 }
 
 int main() {
