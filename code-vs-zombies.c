@@ -2,6 +2,10 @@
 Inspired by
 https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
 */
+
+//#define MY_TEST 1
+
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -93,7 +97,7 @@ struct strategy {
 };
 
 double elapsed(clock_t start_t, clock_t end_t) {
-  fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
+  //fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
   return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
 }
 
@@ -331,8 +335,8 @@ while there is some time left
 apply the first move of the best strategy seen so far
 */
 void move2(const struct game_state *actual_state,
-           const struct strategy initial_strategy, const clock_t start_t) {
-  struct strategy current_strategy = initial_strategy;
+           const struct strategy *initial_strategy, const clock_t start_t) {
+  struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
 
@@ -358,7 +362,7 @@ void move(const struct game_state *src) {
   fprintf(stderr, "elapsed: %.3f ms\n", elapsed(start_t, end_t));
 }
 
-int main() {
+void game_loop() {
   srand((unsigned int)time(NULL));
 
   struct game_state game_state;
@@ -414,8 +418,20 @@ int main() {
     // Write an action using printf(). DON'T FORGET THE TRAILING \n
     // To debug: fprintf(stderr, "Debug messages...\n");
 
-    move(&game_state);
+    //move(&game_state);
+    move2(&game_state, &do_nothing_strategy, clock());
   }
+}
+
+void tests() {}
+
+int main() {
+
+#ifndef MY_TEST
+  game_loop();
+#else
+  tests();
+#endif
 
   return 0;
 }
