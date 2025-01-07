@@ -9,6 +9,22 @@ https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
 #include <string.h>
 #include <time.h>
 
+long fibo[] = {1,        2,        3,         5,         8,        13,
+               21,       34,       55,        89,        144,      233,
+               377,      610,      987,       1597,      2584,     4181,
+               6765,     10946,    17711,     28657,     46368,    75025,
+               121393,   196418,   317811,    514229,    832040,   1346269,
+               2178309,  3524578,  5702887,   9227465,   14930352, 24157817,
+               39088169, 63245986, 102334155, 165580141, 267914296};
+
+long get_fibo(int num) {
+  if (num > 40) {
+    return fibo[40];
+  } else {
+    return fibo[num];
+  }
+}
+
 enum constraints {
   max_human = 99,
   max_zombie = 99,
@@ -75,12 +91,6 @@ struct strategy {
   int target_zombie_id;
   struct point first_move;
 };
-
-long scoring(const struct game_state *game_state) {
-  long result = 0;
-  // todo
-  return result;
-}
 
 double elapsed(clock_t start_t, clock_t end_t) {
   fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
@@ -171,10 +181,8 @@ int sum_ones(int arr[], int size) {
   return count;
 }
 
-void simulate_turn(struct game_state *simulated_state,
+long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
-  // todo
-
   /*
   1. Zombies move towards their targets.
   2. Ash moves towards his target.
@@ -217,14 +225,25 @@ void simulate_turn(struct game_state *simulated_state,
     }
     for (int j = 0; j < simulated_state->human_count; ++j) {
       if (point_equals(simulated_state->human[j], simulated_state->zombie[i])) {
-         killed_human_index[j] = 1;    
+        killed_human_index[j] = 1;
       }
     }
   }
 
-  /* step 5 recalc zombie and humans */
+  /* step 5 calc scoring */
   const int zombie_killed =
       sum_ones(killed_zombie_index, simulated_state->zombie_count);
+  const int human_killed =
+      sum_ones(killed_human_index, simulated_state->human_count);
+
+  long scoring = 0;
+  for (int i = 0; i < zombie_killed; ++i) {
+    long worth =
+        get_fibo(i) * (simulated_state->human_count - human_killed) * 10;
+    scoring += worth;
+  }
+
+  /* step 6 recalc zombie and humans */
   if (zombie_killed > 0) {
     int read_index = 0;
     int write_index = 0;
@@ -243,8 +262,6 @@ void simulate_turn(struct game_state *simulated_state,
     simulated_state->zombie_count = write_index;
   }
 
-  const int human_killed =
-      sum_ones(killed_human_index, simulated_state->human_count);
   if (human_killed > 0) {
     int read_index = 0;
     int write_index = 0;
@@ -261,11 +278,16 @@ void simulate_turn(struct game_state *simulated_state,
       }
     }
     simulated_state->human_count = write_index;
-  }  
+  }
+
+  return scoring;
 }
 
 long simulate_the_strategy(const struct game_state *initial_state,
                            struct strategy *result) {
+
+  long scoring = 0;
+
   struct game_state simulated_state = *initial_state;
   for (int i = 0; i < result->random_moves_count; ++i) {
     const struct point random_dest = {rand() % max_x_exclusive,
@@ -293,7 +315,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     simulate_turn(&simulated_state, actual_dest);
   }
 
-  return scoring(&simulated_state);
+  return scoring;
 }
 
 struct point apply_the_first_move(const struct strategy *strategy) {
