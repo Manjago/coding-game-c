@@ -15,7 +15,8 @@ enum constraints {
   response_time_ms = 90,
   max_x_exclusive = 16000,
   max_y_exclusive = 9000,
-  max_ash_move = 1000
+  max_ash_move = 1000,
+  kill_dist_2 = 4000000
 };
 
 struct point {
@@ -24,6 +25,10 @@ struct point {
 
 int dist2(const struct point a, const struct point b) {
   return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+}
+
+bool point_equals(const struct point a, const struct point b) {
+  return a.x == b.x && a.y == b.y;
 }
 
 struct game_state {
@@ -156,6 +161,16 @@ void generate_a_random_strategy(const struct game_state *state,
   result->target_zombie_id = zombie_index;
 }
 
+int sum_ones(int arr[], int size) {
+  int count = 0;
+  for (int i = 0; i < size; i++) {
+    if (arr[i] == 1) {
+      count++;
+    }
+  }
+  return count;
+}
+
 void simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
   // todo
@@ -169,9 +184,84 @@ void simulate_turn(struct game_state *simulated_state,
 
   /* step 1 */
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    find_nearest_human(simulated_state, i);
-    // todo
+    const struct point nearest_human = find_nearest_human(simulated_state, i);
+    const struct point dest =
+        move_from_destination(simulated_state->zombie[i], nearest_human);
+    simulated_state->zombie[i] = dest;
   }
+
+  /* step 2 */
+  simulated_state->ash = ash_move;
+
+  /* step 3 */
+  int killed_zombie_index[simulated_state->zombie_count];
+
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    const double kill_dist =
+        dist2(simulated_state->ash, simulated_state->zombie[i]);
+    if (kill_dist <= kill_dist_2) {
+      killed_zombie_index[i] = 1;
+    } else {
+      killed_zombie_index[i] = 0;
+    }
+  }
+
+  /* step 4 */
+  int killed_human_index[simulated_state->human_count];
+  memset(killed_human_index, 0,
+         sizeof(int) * (size_t)simulated_state->human_count);
+
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    if (killed_zombie_index[i]) {
+      continue;
+    }
+    for (int j = 0; j < simulated_state->human_count; ++j) {
+      if (point_equals(simulated_state->human[j], simulated_state->zombie[i])) {
+         killed_human_index[j] = 1;    
+      }
+    }
+  }
+
+  /* step 5 recalc zombie and humans */
+  const int zombie_killed =
+      sum_ones(killed_zombie_index, simulated_state->zombie_count);
+  if (zombie_killed > 0) {
+    int read_index = 0;
+    int write_index = 0;
+    while (read_index < simulated_state->zombie_count) {
+      if (killed_zombie_index[read_index]) {
+        read_index++;
+      } else {
+        simulated_state->zombie[write_index] =
+            simulated_state->zombie[read_index];
+        simulated_state->zombie_id[write_index] =
+            simulated_state->zombie_id[read_index];
+        read_index++;
+        write_index++;
+      }
+    }
+    simulated_state->zombie_count = write_index;
+  }
+
+  const int human_killed =
+      sum_ones(killed_human_index, simulated_state->human_count);
+  if (human_killed > 0) {
+    int read_index = 0;
+    int write_index = 0;
+    while (read_index < simulated_state->human_count) {
+      if (killed_human_index[read_index]) {
+        read_index++;
+      } else {
+        simulated_state->human[write_index] =
+            simulated_state->human[read_index];
+        simulated_state->human_id[write_index] =
+            simulated_state->human_id[read_index];
+        read_index++;
+        write_index++;
+      }
+    }
+    simulated_state->human_count = write_index;
+  }  
 }
 
 long simulate_the_strategy(const struct game_state *initial_state,
@@ -191,7 +281,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
   int target_zombie_index;
   while ((target_zombie_index = zombie_index_by_id(
               &simulated_state, result->target_zombie_id)) != -1) {
-    const struct point go_to = simulated_state.zombie_next[target_zombie_index];
+    const struct point go_to = simulated_state.zombie[target_zombie_index];
 
     const struct point actual_dest =
         move_from_destination(simulated_state.ash, go_to);
