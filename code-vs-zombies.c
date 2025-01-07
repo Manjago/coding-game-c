@@ -34,6 +34,25 @@ long get_fibo(int num) {
   }
 }
 
+int index_by_value(int arr[], int size, int value) {
+  for (int i = 0; i < size; ++i) {
+    if (arr[i] == value) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+int sum_ones(int arr[], int size) {
+  int count = 0;
+  for (int i = 0; i < size; i++) {
+    if (arr[i] == 1) {
+      count++;
+    }
+  }
+  return count;
+}
+
 enum constraints {
   max_human = 99,
   max_zombie = 99,
@@ -48,7 +67,7 @@ struct point {
   int x, y;
 };
 
-int dist2(const struct point a, const struct point b) {
+int dist2(struct point a, struct point b) {
   const int dx = a.x - b.x;
   const int dy = a.y - b.y;
   return dx * dx + dy * dy;
@@ -68,15 +87,6 @@ struct game_state {
   struct point zombie[max_zombie];
   struct point zombie_next[max_zombie];
 };
-
-int zombie_index_by_id(const struct game_state *state, int zombie_id) {
-  for (int i = 0; i < state->zombie_count; ++i) {
-    if (state->zombie_id[i] == zombie_id) {
-      return i;
-    }
-  }
-  return -1;
-}
 
 struct point find_nearest_human(const struct game_state *state,
                                 int zombie_index) {
@@ -180,16 +190,6 @@ void generate_a_random_strategy(const struct game_state *state,
   result->random_moves_count = x;
   const int zombie_index = rand() % state->zombie_count;
   result->target_zombie_id = zombie_index;
-}
-
-int sum_ones(int arr[], int size) {
-  int count = 0;
-  for (int i = 0; i < size; i++) {
-    if (arr[i] == 1) {
-      count++;
-    }
-  }
-  return count;
 }
 
 long simulate_turn(struct game_state *simulated_state,
@@ -312,8 +312,9 @@ long simulate_the_strategy(const struct game_state *initial_state,
   }
 
   int target_zombie_index;
-  while ((target_zombie_index = zombie_index_by_id(
-              &simulated_state, result->target_zombie_id)) != -1) {
+  while ((target_zombie_index = index_by_value(
+              simulated_state.zombie_id, simulated_state.zombie_count,
+              result->target_zombie_id)) != -1) {
     const struct point go_to = simulated_state.zombie[target_zombie_index];
 
     const struct point actual_dest =
@@ -485,9 +486,28 @@ void test_point_equals() {
   assert(point_equals(i, j));
 }
 
+void test_index_by_value() {
+  int a[4] = {0, 2, 2, 1};
+  assert(1 == index_by_value(a, 4, 2));
+  assert(0 == index_by_value(a, 4, 0));
+  assert(3 == index_by_value(a, 4, 1));
+  assert(-1 == index_by_value(a, 4, 3));
+
+  int b[0] = {};
+  assert(-1 == index_by_value(b, 0, 42));
+
+  int c[5] = {1, 2, 3, 4, 5};
+  assert(-1 == index_by_value(c, 5, 0));
+
+  int d[3] = {2, 2, 2};
+  assert(0 == index_by_value(d, 3, 2));
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
+  test_point_equals();
+  test_index_by_value();
 }
 
 int main() {
