@@ -3,7 +3,7 @@ Inspired by
 https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
 */
 
-//#define MY_TEST 1
+#define MY_TEST 1
 
 #include <assert.h>
 #include <math.h>
@@ -13,17 +13,22 @@ https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
 #include <string.h>
 #include <time.h>
 
-long fibo[] = {1,        2,        3,         5,         8,        13,
-               21,       34,       55,        89,        144,      233,
-               377,      610,      987,       1597,      2584,     4181,
-               6765,     10946,    17711,     28657,     46368,    75025,
-               121393,   196418,   317811,    514229,    832040,   1346269,
-               2178309,  3524578,  5702887,   9227465,   14930352, 24157817,
-               39088169, 63245986, 102334155, 165580141, 267914296};
+#define FIBO_SIZE (int)(sizeof(fibo) / sizeof(fibo[0]))
 
 long get_fibo(int num) {
-  if (num > 40) {
-    return fibo[40];
+
+  static long fibo[] = {
+      1,        2,        3,        5,         8,         13,       21,
+      34,       55,       89,       144,       233,       377,      610,
+      987,      1597,     2584,     4181,      6765,      10946,    17711,
+      28657,    46368,    75025,    121393,    196418,    317811,   514229,
+      832040,   1346269,  2178309,  3524578,   5702887,   9227465,  14930352,
+      24157817, 39088169, 63245986, 102334155, 165580141, 267914296};
+
+  if (num >= FIBO_SIZE) {
+    return fibo[FIBO_SIZE - 1];
+  } else if (num < 0) {
+    return fibo[0];
   } else {
     return fibo[num];
   }
@@ -97,7 +102,7 @@ struct strategy {
 };
 
 double elapsed(clock_t start_t, clock_t end_t) {
-  //fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
+  // fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
   return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
 }
 
@@ -418,12 +423,21 @@ void game_loop() {
     // Write an action using printf(). DON'T FORGET THE TRAILING \n
     // To debug: fprintf(stderr, "Debug messages...\n");
 
-    //move(&game_state);
+    // move(&game_state);
     move2(&game_state, &do_nothing_strategy, clock());
   }
 }
 
-void tests() {}
+void tests() {
+  assert(1 == get_fibo(-10));
+  assert(1 == get_fibo(-1));
+  assert(1 == get_fibo(0));
+  assert(2 == get_fibo(1));
+  assert(165580141 == get_fibo(39));
+  assert(267914296 == get_fibo(40));
+  assert(267914296 == get_fibo(41));
+  assert(267914296 == get_fibo(50));
+}
 
 int main() {
 
