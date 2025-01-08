@@ -187,11 +187,12 @@ for each
 zombie still alive (the order of the zombies is also chosen randomly)
     move toward the zombie until he's killed
 */
-void generate_a_random_strategy(const struct game_state *state,
-                                struct strategy *result) {
-  const int x = rand() % 4;
+void generate_a_random_strategy(int zombie_count, struct strategy *result,
+                                int (*frand)()) {
+  assert(0 != zombie_count);
+  const int x = (*frand)() % 4;
   result->random_moves_count = x;
-  const int zombie_index = rand() % state->zombie_count;
+  const int zombie_index = (*frand)() % zombie_count;
   result->target_zombie_id = zombie_index;
 }
 
@@ -356,7 +357,8 @@ void move2(const struct game_state *actual_state,
   struct strategy pretender_strategy;
 
   while (has_time(start_t, clock(), response_time_ms)) {
-    generate_a_random_strategy(actual_state, &pretender_strategy);
+    generate_a_random_strategy(actual_state->zombie_count, &pretender_strategy,
+                               &rand);
     long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
     if (scoring > current_scoring) {
       current_scoring = scoring;
@@ -621,6 +623,25 @@ void test_move_from_destination() {
   assert(point_equals(f_expected, move_from_destination(f_from, f_to, 5)));
 }
 
+#define RAND_SIZE (int)(sizeof(rand_data) / sizeof(rand_data[0]))
+int custom_rand() {
+  static int rand_data[2] = {5, 6};
+  static int index = 0;
+  if (index > RAND_SIZE - 1) {
+    index = 0;
+  }
+  return rand_data[index++];
+}
+
+void test_generate_a_random_strategy() {
+  struct point not_changed_point = {42, 42};
+  struct strategy strategy = {0, 0, not_changed_point};
+  generate_a_random_strategy(3, &strategy, &custom_rand);
+  assert(1 == strategy.random_moves_count);
+  assert(0 == strategy.target_zombie_id);
+  assert(point_equals(not_changed_point, strategy.first_move));
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -631,6 +652,7 @@ void tests() {
   test_elapsed();
   test_has_time();
   test_move_from_destination();
+  test_generate_a_random_strategy();
   printf("All tests SUCCESSFUL!\n");
 }
 
