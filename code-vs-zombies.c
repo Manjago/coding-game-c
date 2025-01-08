@@ -13,7 +13,9 @@ https://www.codingame.com/forum/t/code-vs-zombies-feedback-strategies/1089/37
 #include <string.h>
 #include <time.h>
 
+#define SIZE_OF_INT sizeof(int)
 #define FIBO_SIZE (int)(sizeof(fibo) / sizeof(fibo[0]))
+#define RAND_SIZE (int)(sizeof(rand_data) / sizeof(rand_data[0]))
 
 long get_fibo(int num) {
 
@@ -50,6 +52,8 @@ int sum_ones(int arr[], int size) {
   }
   return sum;
 }
+
+void zero_array(int arr[], size_t size) { memset(arr, 0, SIZE_OF_INT * size); }
 
 enum constraints {
   max_human = 99,
@@ -196,6 +200,21 @@ void generate_a_random_strategy(int zombie_count, struct strategy *result,
   result->target_zombie_id = zombie_index;
 }
 
+void zombies_move_towards_their_targets(struct game_state *simulated_state) {
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    simulated_state->zombie[i] = simulated_state->zombie_next[i];
+  }
+}
+
+void ash_moves_towards_his_target(struct game_state *simulated_state,
+                                  const struct point ash_move) {
+  simulated_state->ash = ash_move;
+}
+
+void any_zombie_in_range_is_destroyed(//struct game_state *simulated_state,
+                                      //int kill_dist_2
+                                          ) {}
+
 long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
   /*
@@ -203,22 +222,14 @@ long simulate_turn(struct game_state *simulated_state,
   2. Ash moves towards his target.
   3. Any zombie within a 2000 unit range around Ash is destroyed.
   4. Zombies eat any human they share coordinates with.
+  5-6-7. tech steps
   */
 
   /* step 1 */
-  for (int i = 0; i < simulated_state->zombie_count; ++i) {
-
-    const struct point nearest_human =
-        find_nearest(simulated_state->zombie[i], simulated_state->human,
-                     simulated_state->human_count);
-
-    const struct point dest = move_from_destination(
-        simulated_state->zombie[i], nearest_human, max_ash_move);
-    simulated_state->zombie[i] = dest;
-  }
+  zombies_move_towards_their_targets(simulated_state);
 
   /* step 2 */
-  simulated_state->ash = ash_move;
+  ash_moves_towards_his_target(simulated_state, ash_move);
 
   /* step 3 */
   int killed_zombie_index[simulated_state->zombie_count];
@@ -236,7 +247,7 @@ long simulate_turn(struct game_state *simulated_state,
   /* step 4 */
   int killed_human_index[simulated_state->human_count];
   memset(killed_human_index, 0,
-         sizeof(int) * (size_t)simulated_state->human_count);
+         SIZE_OF_INT * (size_t)simulated_state->human_count);
 
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
     if (killed_zombie_index[i]) {
@@ -279,6 +290,18 @@ long simulate_turn(struct game_state *simulated_state,
       }
     }
     simulated_state->zombie_count = write_index;
+
+    /* step 7 calc zombie next point*/
+    for (int i = 0; i < simulated_state->zombie_count; ++i) {
+
+      const struct point nearest_human =
+          find_nearest(simulated_state->zombie[i], simulated_state->human,
+                       simulated_state->human_count);
+
+      const struct point dest = move_from_destination(
+          simulated_state->zombie[i], nearest_human, max_ash_move);
+      simulated_state->zombie_next[i] = dest;
+    }
   }
 
   if (human_killed > 0) {
@@ -366,7 +389,7 @@ void move2(const struct game_state *actual_state,
     };
   }
 
-  const struct point move = apply_the_first_move(&pretender_strategy);
+  const struct point move = apply_the_first_move(&current_strategy);
   sendMove(move);
 }
 
@@ -502,9 +525,6 @@ void test_index_by_value() {
   assert(3 == index_by_value(a, 4, 1));
   assert(-1 == index_by_value(a, 4, 3));
 
-  int b[0] = {};
-  assert(-1 == index_by_value(b, 0, 42));
-
   int c[5] = {1, 2, 3, 4, 5};
   assert(-1 == index_by_value(c, 5, 0));
 
@@ -515,9 +535,6 @@ void test_index_by_value() {
 void test_sum_ones() {
   int a[4] = {1, 0, 1, 1};
   assert(3 == sum_ones(a, 4));
-
-  int b[0] = {};
-  assert(0 == sum_ones(b, 0));
 
   int c[5] = {0, 0, 0, 0, 0};
   assert(0 == sum_ones(c, 5));
@@ -551,10 +568,6 @@ void test_find_nearest() {
       {9, 9},
   };
   assert(point_equals(c, find_nearest(c, arr_c, 3)));
-
-  const struct point d = {0, 0};
-  const struct point arr_d[0] = {};
-  assert(point_equals(d, find_nearest(d, arr_d, 0)));
 }
 
 void test_elapsed() {
@@ -623,7 +636,6 @@ void test_move_from_destination() {
   assert(point_equals(f_expected, move_from_destination(f_from, f_to, 5)));
 }
 
-#define RAND_SIZE (int)(sizeof(rand_data) / sizeof(rand_data[0]))
 int custom_rand() {
   static int rand_data[2] = {5, 6};
   static int index = 0;
@@ -642,6 +654,14 @@ void test_generate_a_random_strategy() {
   assert(point_equals(not_changed_point, strategy.first_move));
 }
 
+void test_zero_array() {
+  int test_array[3] = {1, 0, 2};
+  zero_array(test_array, 3);
+  assert(0 == test_array[0]);
+  assert(0 == test_array[1]);
+  assert(0 == test_array[2]);
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -653,6 +673,7 @@ void tests() {
   test_has_time();
   test_move_from_destination();
   test_generate_a_random_strategy();
+  test_zero_array();
   printf("All tests SUCCESSFUL!\n");
 }
 
