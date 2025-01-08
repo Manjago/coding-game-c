@@ -113,7 +113,7 @@ struct strategy {
 
 double elapsed(clock_t start_t, clock_t end_t) {
   const clock_t delta_ticks = end_t - start_t;
-  return (double)delta_ticks / CLOCKS_PER_SEC * 1000;
+  return (double)delta_ticks / CLOCKS_PER_SEC * 1000.0;
 }
 
 void dump_game_state_ash(const struct game_state *state) {
@@ -154,10 +154,9 @@ void dump_game_state(const struct game_state *state) {
   dump_game_state_zombies(state);
 }
 
-bool has_time(const clock_t start_t) {
-  clock_t end_t = clock();
+bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
   double elapsed_ms = elapsed(start_t, end_t);
-  return elapsed_ms < response_time_ms;
+  return elapsed_ms <= limit_ms;
 }
 
 struct point move_from_destination(struct point from, struct point to) {
@@ -350,7 +349,7 @@ void move2(const struct game_state *actual_state,
   long current_scoring = -1;
   struct strategy pretender_strategy;
 
-  while (has_time(start_t)) {
+  while (has_time(start_t, clock(), response_time_ms)) {
     generate_a_random_strategy(actual_state, &pretender_strategy);
     long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
     if (scoring > current_scoring) {
@@ -568,6 +567,20 @@ void test_elapsed() {
   assert(elapsed(min_clock_t, max_clock_t) > 999000.0);
 }
 
+void test_has_time() {
+  assert(has_time(0, CLOCKS_PER_SEC, 1050));
+
+  assert(!has_time(0, CLOCKS_PER_SEC, 950));
+
+  const clock_t two_seconds = 2 * CLOCKS_PER_SEC;
+  assert(has_time(0, two_seconds, 2100));
+
+  const clock_t half_second = CLOCKS_PER_SEC / 2;
+  assert(has_time(0, half_second, 600));
+
+  assert(has_time(0, CLOCKS_PER_SEC / 1000, 1));
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -576,6 +589,8 @@ void tests() {
   test_sum_ones();
   test_find_nearest();
   test_elapsed();
+  test_has_time();
+  printf("All tests SUCCESS\n");
 }
 
 int main() {
