@@ -112,8 +112,8 @@ struct strategy {
 };
 
 double elapsed(clock_t start_t, clock_t end_t) {
-  // fprintf(stderr, "clock %ld %ld %ld\n", start_t, end_t, CLOCKS_PER_SEC);
-  return (double)(end_t - start_t) / CLOCKS_PER_SEC * 1000;
+  const clock_t delta_ticks = end_t - start_t;
+  return (double)delta_ticks / CLOCKS_PER_SEC * 1000;
 }
 
 void dump_game_state_ash(const struct game_state *state) {
@@ -550,6 +550,24 @@ void test_find_nearest() {
   assert(point_equals(d, find_nearest(d, arr_d, 0)));
 }
 
+void test_elapsed() {
+  assert(fabs(elapsed(1, 1)) < 1e-8);
+
+  assert(elapsed(10, 5) < 0);
+
+  clock_t start = clock();
+  clock_t end = start + CLOCKS_PER_SEC;
+  assert(fabs(elapsed(start, end) - 1000.0) < 10.0);
+
+  start = clock();
+  end = start + 5 * CLOCKS_PER_SEC;
+  assert(fabs(elapsed(start, end) - 5000.0) < 50.0);
+
+  clock_t min_clock_t = 0;
+  clock_t max_clock_t = CLOCKS_PER_SEC * 1000;
+  assert(elapsed(min_clock_t, max_clock_t) > 999000.0);
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -557,6 +575,7 @@ void tests() {
   test_index_by_value();
   test_sum_ones();
   test_find_nearest();
+  test_elapsed();
 }
 
 int main() {
