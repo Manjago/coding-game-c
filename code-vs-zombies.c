@@ -159,18 +159,24 @@ bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
   return elapsed_ms <= limit_ms;
 }
 
-struct point move_from_destination(struct point from, struct point to) {
-  int a = from.x - to.x;
-  int b = from.y - to.y;
-  double real_dist = sqrt(a * a + b * b);
-  if (real_dist <= max_ash_move) {
-    return to;
-  };
+struct point move_from_destination(const struct point from,
+                                   const struct point to, int max_dist) {
+  struct point result;
+  const int delta_x = to.x - from.x;
+  const int delta_y = to.y - from.y;
+  const double real_dist = hypot(delta_x, delta_y);
+  if (real_dist <= max_dist) {
+    result = to;
+  } else {
+    const double coeff = real_dist / max_dist;
+    const double real_delta_x_double = delta_x / coeff;
+    const double real_delta_y_double = delta_y / coeff;
+    const int real_delta_x_int = (int)real_delta_x_double;
+    const int real_delta_y_int = (int)real_delta_y_double;
+    result.x = from.x + real_delta_x_int;
+    result.y = from.y + real_delta_y_int;
+  }
 
-  double coeff = real_dist / max_ash_move;
-  int a_mod = (int)(a / coeff);
-  int b_mod = (int)(b / coeff);
-  struct point result = {from.x + a_mod, from.y + b_mod};
   return result;
 }
 
@@ -205,8 +211,8 @@ long simulate_turn(struct game_state *simulated_state,
         find_nearest(simulated_state->zombie[i], simulated_state->human,
                      simulated_state->human_count);
 
-    const struct point dest =
-        move_from_destination(simulated_state->zombie[i], nearest_human);
+    const struct point dest = move_from_destination(
+        simulated_state->zombie[i], nearest_human, max_ash_move);
     simulated_state->zombie[i] = dest;
   }
 
@@ -305,7 +311,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     const struct point random_dest = {rand() % max_x_exclusive,
                                       rand() % max_y_exclusive};
     const struct point actual_dest =
-        move_from_destination(simulated_state.ash, random_dest);
+        move_from_destination(simulated_state.ash, random_dest, max_ash_move);
     if (i == 0) {
       result->first_move = actual_dest;
     }
@@ -319,7 +325,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     const struct point go_to = simulated_state.zombie[target_zombie_index];
 
     const struct point actual_dest =
-        move_from_destination(simulated_state.ash, go_to);
+        move_from_destination(simulated_state.ash, go_to, max_ash_move);
 
     if (result->random_moves_count == 0) {
       result->first_move = actual_dest;
@@ -581,6 +587,40 @@ void test_has_time() {
   assert(has_time(0, CLOCKS_PER_SEC / 1000, 1));
 }
 
+void test_move_from_destination() {
+  const struct point a_from = {0, 0};
+  const struct point a_to = {10, 0};
+  const struct point a_expected = {5, 0};
+  assert(point_equals(a_expected, move_from_destination(a_from, a_to, 5)));
+  assert(point_equals(a_to, move_from_destination(a_from, a_to, 10)));
+
+  const struct point b_from = {-5, -5};
+  const struct point b_to = {10, 10};
+  const struct point b_expected = {0, 0};
+  assert(point_equals(b_expected, move_from_destination(b_from, b_to, 8)));
+
+  const struct point c_from = {0, 0};
+  const struct point c_to = {10, 10};
+  const struct point c_expected = {0, 0};
+  assert(point_equals(c_expected, move_from_destination(c_from, c_to, 0)));
+
+  const struct point d_from = {5, 5};
+  const struct point d_to = {5, 5};
+  const struct point d_expected = {5, 5};
+  assert(point_equals(d_expected, move_from_destination(d_from, d_to, 10)));
+
+  const struct point e_from = {0, 0};
+  const struct point e_to = {5, 5};
+  const struct point e_expected = {5, 5};
+  assert(point_equals(e_expected, move_from_destination(e_from, e_to, 10)));
+
+  const struct point f_from = {1, 2};
+  const struct point f_to = {4, 6};
+  const struct point f_expected = {4, 6};
+  assert(point_equals(f_to, move_from_destination(f_from, f_to, 10)));
+  assert(point_equals(f_expected, move_from_destination(f_from, f_to, 5)));
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -590,7 +630,8 @@ void tests() {
   test_find_nearest();
   test_elapsed();
   test_has_time();
-  printf("All tests SUCCESS\n");
+  test_move_from_destination();
+  printf("All tests SUCCESSFUL!\n");
 }
 
 int main() {
