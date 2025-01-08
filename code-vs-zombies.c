@@ -105,25 +105,6 @@ struct point find_nearest(const struct point tested, const struct point arr[],
   }
 }
 
-struct point find_nearest_human(const struct game_state *state,
-                                int zombie_index) {
-  int answer_dist = -1;
-  int answer_human_index = -1;
-  for (int i = 0; i < state->human_count; ++i) {
-    int current_dist = dist2(state->zombie[zombie_index], state->human[i]);
-    if (answer_dist == -1 || current_dist < answer_dist) {
-      current_dist = answer_dist;
-      answer_human_index = i;
-    }
-  }
-
-  if (answer_human_index == -1) {
-    return state->zombie[zombie_index];
-  } else {
-    return state->human[answer_human_index];
-  }
-}
-
 struct strategy {
   int random_moves_count;
   int target_zombie_id;
@@ -220,7 +201,11 @@ long simulate_turn(struct game_state *simulated_state,
 
   /* step 1 */
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    const struct point nearest_human = find_nearest_human(simulated_state, i);
+
+    const struct point nearest_human =
+        find_nearest(simulated_state->zombie[i], simulated_state->human,
+                     simulated_state->human_count);
+
     const struct point dest =
         move_from_destination(simulated_state->zombie[i], nearest_human);
     simulated_state->zombie[i] = dest;
