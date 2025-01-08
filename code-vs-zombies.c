@@ -86,6 +86,25 @@ struct game_state {
   struct point zombie_next[max_zombie];
 };
 
+struct point find_nearest(const struct point tested, const struct point arr[],
+                          int size) {
+  int answer_dist = -1;
+  int answer_index = -1;
+  for (int i = 0; i < size; ++i) {
+    const int current_dist = dist2(tested, arr[i]);
+    if (answer_dist == -1 || current_dist < answer_dist) {
+      answer_dist = current_dist;
+      answer_index = i;
+    }
+  }
+
+  if (answer_index == -1) {
+    return tested;
+  } else {
+    return arr[answer_index];
+  }
+}
+
 struct point find_nearest_human(const struct game_state *state,
                                 int zombie_index) {
   int answer_dist = -1;
@@ -518,12 +537,41 @@ void test_sum_ones() {
   assert(3 == sum_ones(e, 6));
 }
 
+void test_find_nearest() {
+  const struct point a = {10, 10};
+  const struct point a_expected = {11, 11};
+  const struct point arr_a[3] = {
+      {0, 0},
+      {11, 11},
+      {5, 5},
+  };
+  assert(point_equals(a_expected, find_nearest(a, arr_a, 3)));
+
+  const struct point b = {0, 0};
+  const struct point b_expected = {0, 0};
+  const struct point arr_b[1] = {{0, 0}};
+  assert(point_equals(b_expected, find_nearest(b, arr_b, 1)));
+
+  const struct point c = {10, 10};
+  const struct point arr_c[3] = {
+      {10, 10},
+      {11, 11},
+      {9, 9},
+  };
+  assert(point_equals(c, find_nearest(c, arr_c, 3)));
+
+  const struct point d = {0, 0};
+  const struct point arr_d[0] = {};
+  assert(point_equals(d, find_nearest(d, arr_d, 0)));
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
   test_point_equals();
   test_index_by_value();
   test_sum_ones();
+  test_find_nearest();
 }
 
 int main() {
