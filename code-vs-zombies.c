@@ -211,9 +211,17 @@ void ash_moves_towards_his_target(struct game_state *simulated_state,
   simulated_state->ash = ash_move;
 }
 
-void any_zombie_in_range_is_destroyed(//struct game_state *simulated_state,
-                                      //int kill_dist_2
-                                          ) {}
+void any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
+                                      int critical_dist_2,
+                                      int killed_zombie_index[]) {
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    const double kill_dist =
+        dist2(simulated_state->ash, simulated_state->zombie[i]);
+    if (kill_dist <= critical_dist_2) {
+      killed_zombie_index[i] = 1;
+    }
+  }
+}
 
 long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
@@ -232,17 +240,12 @@ long simulate_turn(struct game_state *simulated_state,
   ash_moves_towards_his_target(simulated_state, ash_move);
 
   /* step 3 */
+  assert(simulated_state->zombie_count > 0);
   int killed_zombie_index[simulated_state->zombie_count];
+  zero_array(killed_zombie_index, (size_t)simulated_state->zombie_count);
 
-  for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    const double kill_dist =
-        dist2(simulated_state->ash, simulated_state->zombie[i]);
-    if (kill_dist <= kill_dist_2) {
-      killed_zombie_index[i] = 1;
-    } else {
-      killed_zombie_index[i] = 0;
-    }
-  }
+  any_zombie_in_range_is_destroyed(simulated_state, kill_dist_2,
+                                   killed_zombie_index);
 
   /* step 4 */
   int killed_human_index[simulated_state->human_count];
