@@ -293,7 +293,8 @@ void calc_zombie_next_point(struct game_state *simulated_state) {
 }
 
 long simulate_turn(struct game_state *simulated_state,
-                   const struct point ash_move) {
+                   const struct point ash_move,
+                   int critical_dist_2) {
   /*
   1. Zombies move towards their targets.
   2. Ash moves towards his target.
@@ -313,7 +314,7 @@ long simulate_turn(struct game_state *simulated_state,
   int killed_zombie_index[simulated_state->zombie_count];
   zero_array(killed_zombie_index, (size_t)simulated_state->zombie_count);
 
-  any_zombie_in_range_is_destroyed(simulated_state, kill_dist_2,
+  any_zombie_in_range_is_destroyed(simulated_state, critical_dist_2,
                                    killed_zombie_index);
 
   /* step 4 */
@@ -345,7 +346,7 @@ long simulate_turn(struct game_state *simulated_state,
 
   /* step 7 calc zombie next point*/
   calc_zombie_next_point(simulated_state);
-  
+
   return scoring;
 }
 
@@ -363,7 +364,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     if (i == 0) {
       result->first_move = actual_dest;
     }
-    simulate_turn(&simulated_state, actual_dest);
+    simulate_turn(&simulated_state, actual_dest, kill_dist_2);
   }
 
   int target_zombie_index;
@@ -379,7 +380,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
       result->first_move = actual_dest;
     }
 
-    simulate_turn(&simulated_state, actual_dest);
+    simulate_turn(&simulated_state, actual_dest, kill_dist_2);
   }
 
   return scoring;
