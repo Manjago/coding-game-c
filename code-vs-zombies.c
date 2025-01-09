@@ -319,39 +319,15 @@ long simulate_turn(struct game_state *simulated_state,
 
   /* step 6 recalc zombie and humans */
   if (zombie_killed > 0) {
-    int read_index = 0;
-    int write_index = 0;
-    while (read_index < simulated_state->zombie_count) {
-      if (killed_zombie_index[read_index]) {
-        read_index++;
-      } else {
-        simulated_state->zombie[write_index] =
-            simulated_state->zombie[read_index];
-        simulated_state->zombie_id[write_index] =
-            simulated_state->zombie_id[read_index];
-        read_index++;
-        write_index++;
-      }
-    }
-    simulated_state->zombie_count = write_index;
+    simulated_state->zombie_count =
+        vacuum(killed_zombie_index, simulated_state->zombie,
+               simulated_state->zombie_id, simulated_state->zombie_count);
   }
 
   if (human_killed > 0) {
-    int read_index = 0;
-    int write_index = 0;
-    while (read_index < simulated_state->human_count) {
-      if (killed_human_index[read_index]) {
-        read_index++;
-      } else {
-        simulated_state->human[write_index] =
-            simulated_state->human[read_index];
-        simulated_state->human_id[write_index] =
-            simulated_state->human_id[read_index];
-        read_index++;
-        write_index++;
-      }
-    }
-    simulated_state->human_count = write_index;
+    simulated_state->human_count =
+        vacuum(killed_human_index, simulated_state->human,
+               simulated_state->human_id, simulated_state->human_count);
   }
 
   /* step 7 calc zombie next point*/
