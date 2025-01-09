@@ -265,6 +265,20 @@ struct scoring_and_kill_stat calc_scoring(struct game_state *simulated_state,
   return result;
 }
 
+int vacuum(int arr_to_remove[], struct point arr_data[], int arr_id[],
+           int size) {
+  int read_index = 0;
+  int write_index = 0;
+  while (read_index < size) {
+    if (!arr_to_remove[read_index]) {
+      arr_data[write_index] = arr_data[read_index];
+      arr_id[write_index++] = arr_id[read_index];
+    }
+    read_index++;
+  }
+  return write_index;
+}
+
 long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
   /*
@@ -299,9 +313,9 @@ long simulate_turn(struct game_state *simulated_state,
   const struct scoring_and_kill_stat scoring_info =
       calc_scoring(simulated_state, killed_zombie_index, killed_human_index);
 
-  long scoring = scoring_info.scoring;
-  int zombie_killed = scoring_info.zombie_killed;
-  int human_killed = scoring_info.human_killed;
+  const long scoring = scoring_info.scoring;
+  const int zombie_killed = scoring_info.zombie_killed;
+  const int human_killed = scoring_info.human_killed;
 
   /* step 6 recalc zombie and humans */
   if (zombie_killed > 0) {
@@ -320,18 +334,6 @@ long simulate_turn(struct game_state *simulated_state,
       }
     }
     simulated_state->zombie_count = write_index;
-
-    /* step 7 calc zombie next point*/
-    for (int i = 0; i < simulated_state->zombie_count; ++i) {
-
-      const struct point nearest_human =
-          find_nearest(simulated_state->zombie[i], simulated_state->human,
-                       simulated_state->human_count);
-
-      const struct point dest = move_from_destination(
-          simulated_state->zombie[i], nearest_human, max_ash_move);
-      simulated_state->zombie_next[i] = dest;
-    }
   }
 
   if (human_killed > 0) {
@@ -350,6 +352,18 @@ long simulate_turn(struct game_state *simulated_state,
       }
     }
     simulated_state->human_count = write_index;
+  }
+
+  /* step 7 calc zombie next point*/
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+
+    const struct point nearest_human =
+        find_nearest(simulated_state->zombie[i], simulated_state->human,
+                     simulated_state->human_count);
+
+    const struct point dest = move_from_destination(
+        simulated_state->zombie[i], nearest_human, max_ash_move);
+    simulated_state->zombie_next[i] = dest;
   }
 
   return scoring;
@@ -692,6 +706,39 @@ void test_zero_array() {
   assert(0 == test_array[2]);
 }
 
+void test_vacuum() {
+  {
+    int arr_to_remove[5] = {0, 1, 0, 1, 0};
+    struct point arr_data[5] = {{0, 1}, {2, 3}, {4, 5}, {6, 7}, {8, 9}};
+    int arr_id[5] = {0, 1, 2, 3, 4};
+
+    int new_size = vacuum(arr_to_remove, arr_data, arr_id, 5);
+
+    assert(3 == new_size);
+
+    assert(0 == arr_id[0]);
+    assert(2 == arr_id[1]);
+    assert(4 == arr_id[2]);
+
+    const struct point expected_point_0 = {0, 1};
+    assert(point_equals(expected_point_0, arr_data[0]));
+    const struct point expected_point_1 = {4, 5};
+    assert(point_equals(expected_point_1, arr_data[1]));
+    const struct point expected_point_2 = {8, 9};
+    assert(point_equals(expected_point_2, arr_data[2]));
+  }
+
+  {
+    int arr_to_remove[2] = {1, 1};
+    struct point arr_data[5] = {{0, 1}, {2, 3}};
+    int arr_id[5] = {0, 1};
+
+    int new_size = vacuum(arr_to_remove, arr_data, arr_id, 2);
+
+    assert(0 == new_size);
+  }
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -704,6 +751,7 @@ void tests() {
   test_move_from_destination();
   test_generate_a_random_strategy();
   test_zero_array();
+  test_vacuum();
   printf("All tests SUCCESSFUL!\n");
 }
 
