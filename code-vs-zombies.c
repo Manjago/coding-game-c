@@ -279,6 +279,19 @@ int vacuum(int arr_to_remove[], struct point arr_data[], int arr_id[],
   return write_index;
 }
 
+void calc_zombie_next_point(struct game_state *simulated_state) {
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+
+    const struct point nearest_human =
+        find_nearest(simulated_state->zombie[i], simulated_state->human,
+                     simulated_state->human_count);
+
+    const struct point dest = move_from_destination(
+        simulated_state->zombie[i], nearest_human, max_ash_move);
+    simulated_state->zombie_next[i] = dest;
+  }
+}
+
 long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
   /*
@@ -331,17 +344,8 @@ long simulate_turn(struct game_state *simulated_state,
   }
 
   /* step 7 calc zombie next point*/
-  for (int i = 0; i < simulated_state->zombie_count; ++i) {
-
-    const struct point nearest_human =
-        find_nearest(simulated_state->zombie[i], simulated_state->human,
-                     simulated_state->human_count);
-
-    const struct point dest = move_from_destination(
-        simulated_state->zombie[i], nearest_human, max_ash_move);
-    simulated_state->zombie_next[i] = dest;
-  }
-
+  calc_zombie_next_point(simulated_state);
+  
   return scoring;
 }
 
