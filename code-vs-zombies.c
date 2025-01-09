@@ -223,6 +223,20 @@ void any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
   }
 }
 
+void zombies_eat_human(struct game_state *simulated_state,
+                       int killed_zombie_index[], int killed_human_index[]) {
+  for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    if (killed_zombie_index[i]) {
+      continue;
+    }
+    for (int j = 0; j < simulated_state->human_count; ++j) {
+      if (point_equals(simulated_state->human[j], simulated_state->zombie[i])) {
+        killed_human_index[j] = 1;
+      }
+    }
+  }
+}
+
 long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
   /*
@@ -249,19 +263,9 @@ long simulate_turn(struct game_state *simulated_state,
 
   /* step 4 */
   int killed_human_index[simulated_state->human_count];
-  memset(killed_human_index, 0,
-         SIZE_OF_INT * (size_t)simulated_state->human_count);
-
-  for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    if (killed_zombie_index[i]) {
-      continue;
-    }
-    for (int j = 0; j < simulated_state->human_count; ++j) {
-      if (point_equals(simulated_state->human[j], simulated_state->zombie[i])) {
-        killed_human_index[j] = 1;
-      }
-    }
-  }
+  zero_array(killed_human_index, (size_t)simulated_state->human_count);
+  
+  zombies_eat_human(simulated_state, killed_zombie_index, killed_human_index);
 
   /* step 5 calc scoring */
   const int zombie_killed =
