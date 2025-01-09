@@ -237,6 +237,34 @@ void zombies_eat_human(struct game_state *simulated_state,
   }
 }
 
+struct scoring_and_kill_stat {
+  long scoring;
+  int zombie_killed;
+  int human_killed;
+};
+
+struct scoring_and_kill_stat calc_scoring(struct game_state *simulated_state,
+                                          int killed_zombie_index[],
+                                          int killed_human_index[]) {
+  const int zombie_killed =
+      sum_ones(killed_zombie_index, simulated_state->zombie_count);
+  const int human_killed =
+      sum_ones(killed_human_index, simulated_state->human_count);
+
+  long scoring = 0;
+  for (int i = 0; i < zombie_killed; ++i) {
+    long worth =
+        get_fibo(i) * (simulated_state->human_count - human_killed) * 10;
+    scoring += worth;
+  }
+
+  struct scoring_and_kill_stat result;
+  result.scoring = scoring;
+  result.zombie_killed = zombie_killed;
+  result.human_killed = human_killed;
+  return result;
+}
+
 long simulate_turn(struct game_state *simulated_state,
                    const struct point ash_move) {
   /*
@@ -264,21 +292,16 @@ long simulate_turn(struct game_state *simulated_state,
   /* step 4 */
   int killed_human_index[simulated_state->human_count];
   zero_array(killed_human_index, (size_t)simulated_state->human_count);
-  
+
   zombies_eat_human(simulated_state, killed_zombie_index, killed_human_index);
 
   /* step 5 calc scoring */
-  const int zombie_killed =
-      sum_ones(killed_zombie_index, simulated_state->zombie_count);
-  const int human_killed =
-      sum_ones(killed_human_index, simulated_state->human_count);
+  const struct scoring_and_kill_stat scoring_info =
+      calc_scoring(simulated_state, killed_zombie_index, killed_human_index);
 
-  long scoring = 0;
-  for (int i = 0; i < zombie_killed; ++i) {
-    long worth =
-        get_fibo(i) * (simulated_state->human_count - human_killed) * 10;
-    scoring += worth;
-  }
+  long scoring = scoring_info.scoring;
+  int zombie_killed = scoring_info.zombie_killed;
+  int human_killed = scoring_info.human_killed;
 
   /* step 6 recalc zombie and humans */
   if (zombie_killed > 0) {
