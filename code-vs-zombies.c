@@ -62,6 +62,7 @@ enum constraints {
   max_x_exclusive = 16000,
   max_y_exclusive = 9000,
   max_ash_move = 1000,
+  max_zombie_move = 400,
   kill_dist_2 = 4000000
 };
 
@@ -279,7 +280,7 @@ int vacuum(int arr_to_remove[], struct point arr_data[], int arr_id[],
   return write_index;
 }
 
-void calc_zombie_next_point(struct game_state *simulated_state) {
+void calc_zombie_next_point(struct game_state *simulated_state, int zombie_move_len) {
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
 
     const struct point nearest_human =
@@ -287,14 +288,14 @@ void calc_zombie_next_point(struct game_state *simulated_state) {
                      simulated_state->human_count);
 
     const struct point dest = move_from_destination(
-        simulated_state->zombie[i], nearest_human, max_ash_move);
+        simulated_state->zombie[i], nearest_human, zombie_move_len);
     simulated_state->zombie_next[i] = dest;
   }
 }
 
 long simulate_turn(struct game_state *simulated_state,
-                   const struct point ash_move,
-                   int critical_dist_2) {
+                   const struct point ash_move, int critical_dist_2,
+                   int zombie_move_len) {
   /*
   1. Zombies move towards their targets.
   2. Ash moves towards his target.
@@ -345,7 +346,7 @@ long simulate_turn(struct game_state *simulated_state,
   }
 
   /* step 7 calc zombie next point*/
-  calc_zombie_next_point(simulated_state);
+  calc_zombie_next_point(simulated_state, zombie_move_len);
 
   return scoring;
 }
@@ -364,7 +365,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     if (i == 0) {
       result->first_move = actual_dest;
     }
-    simulate_turn(&simulated_state, actual_dest, kill_dist_2);
+    simulate_turn(&simulated_state, actual_dest, kill_dist_2, max_zombie_move);
   }
 
   int target_zombie_index;
@@ -380,7 +381,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
       result->first_move = actual_dest;
     }
 
-    simulate_turn(&simulated_state, actual_dest, kill_dist_2);
+    simulate_turn(&simulated_state, actual_dest, kill_dist_2, max_zombie_move);
   }
 
   return scoring;
