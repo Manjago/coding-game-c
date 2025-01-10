@@ -280,7 +280,8 @@ int vacuum(int arr_to_remove[], struct point arr_data[], int arr_id[],
   return write_index;
 }
 
-void calc_zombie_next_point(struct game_state *simulated_state, int zombie_move_len) {
+void calc_zombie_next_point(struct game_state *simulated_state,
+                            int zombie_move_len) {
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
 
     const struct point nearest_human =
@@ -721,6 +722,50 @@ void test_vacuum() {
   }
 }
 
+void test_simulate_turn() {
+  /*
+            1111111111222
+  01234567890123456789012
+ 0..................Zz.H.
+ 1.......................
+ 2.......................
+ 3.......................
+ 4.......................
+ 5.....A.................
+ 6.......................
+ 7.....a.................
+ 8.......................
+ 9.H..zZ.................
+10.......................
+*/
+
+  struct game_state simulated_state = {{5, 5},
+                                       2,
+                                       {0, 1},
+                                       {{21, 0}, {0, 9}},
+                                       2,
+                                       {0, 1},
+                                       {{18, 0}, {5, 9}},
+                                       {{19, 0}, {4, 9}}};
+
+  zombies_move_towards_their_targets(&simulated_state);
+  assert(
+      point_equals(simulated_state.zombie[0], simulated_state.zombie_next[0]));
+  assert(
+      point_equals(simulated_state.zombie[1], simulated_state.zombie_next[1]));
+
+  const struct point ash_move = {5, 7};
+  ash_moves_towards_his_target(&simulated_state, ash_move);
+  assert(point_equals(ash_move, simulated_state.ash));
+
+  assert(2 == simulated_state.zombie_count);
+  int killed_zombie_index[simulated_state.zombie_count];
+  zero_array(killed_zombie_index, (size_t)simulated_state.zombie_count);
+
+  any_zombie_in_range_is_destroyed(&simulated_state, 9, killed_zombie_index);
+  dump_game_state(&simulated_state);
+}
+
 void tests() {
   test_get_fibo();
   test_dist2();
@@ -734,6 +779,7 @@ void tests() {
   test_generate_a_random_strategy();
   test_zero_array();
   test_vacuum();
+  test_simulate_turn();
   printf("All tests SUCCESSFUL!\n");
 }
 
