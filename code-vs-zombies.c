@@ -122,7 +122,7 @@ double elapsed(clock_t start_t, clock_t end_t) {
 }
 
 void dump_game_state_ash(const struct game_state *state) {
-  fprintf(stderr, "Ash: (%d,%d)\n", state->ash.x, state->ash.x);
+  fprintf(stderr, "Ash: (%d,%d)\n", state->ash.x, state->ash.y);
 }
 
 void dump_game_state_humans(const struct game_state *state) {
@@ -748,21 +748,25 @@ void test_simulate_turn() {
                                        {{18, 0}, {5, 9}},
                                        {{19, 0}, {4, 9}}};
 
+  // test step 1
   zombies_move_towards_their_targets(&simulated_state);
   assert(
       point_equals(simulated_state.zombie[0], simulated_state.zombie_next[0]));
   assert(
       point_equals(simulated_state.zombie[1], simulated_state.zombie_next[1]));
 
+  // test step 2
   const struct point ash_move = {5, 7};
   ash_moves_towards_his_target(&simulated_state, ash_move);
   assert(point_equals(ash_move, simulated_state.ash));
 
+  // test step 3
   assert(2 == simulated_state.zombie_count);
   int killed_zombie_index[simulated_state.zombie_count];
   zero_array(killed_zombie_index, (size_t)simulated_state.zombie_count);
-
   any_zombie_in_range_is_destroyed(&simulated_state, 9, killed_zombie_index);
+  assert(0 == killed_zombie_index[0]);
+  assert(1 == killed_zombie_index[1]);
   dump_game_state(&simulated_state);
 }
 
