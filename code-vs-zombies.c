@@ -249,6 +249,7 @@ void any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
 
 void zombies_eat_human(struct game_state *simulated_state,
                        int killed_zombie_index[], int killed_human_index[]) {
+  bool human_killed = false;
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
     if (killed_zombie_index[i]) {
       continue;
@@ -259,15 +260,14 @@ void zombies_eat_human(struct game_state *simulated_state,
       }
     }
   }
+  if (human_killed) {
+    simulated_state->human_count =
+        vacuum(killed_human_index, simulated_state->human,
+               simulated_state->human_id, simulated_state->human_count);
+  }
 }
 
-struct scoring_and_kill_stat {
-  long scoring;
-  int zombie_killed;
-  int human_killed;
-};
-
-struct scoring_and_kill_stat calc_scoring(struct game_state *simulated_state,
+long calc_scoring(struct game_state *simulated_state,
                                           int killed_zombie_index[],
                                           int killed_human_index[]) {
   const int zombie_killed =
@@ -282,11 +282,7 @@ struct scoring_and_kill_stat calc_scoring(struct game_state *simulated_state,
     scoring += worth;
   }
 
-  struct scoring_and_kill_stat result;
-  result.scoring = scoring;
-  result.zombie_killed = zombie_killed;
-  result.human_killed = human_killed;
-  return result;
+  return scoring;
 }
 
 void calc_zombie_next_point(struct game_state *simulated_state,
@@ -311,7 +307,7 @@ long simulate_turn(struct game_state *simulated_state,
   2. Ash moves towards his target.
   3. Any zombie within a 2000 unit range around Ash is destroyed.
   4. Zombies eat any human they share coordinates with.
-  5-6-7. tech steps
+  5-6. tech steps
   */
 
   /* step 1 */
@@ -329,27 +325,18 @@ long simulate_turn(struct game_state *simulated_state,
                                    killed_zombie_index);
 
   /* step 4 */
+  assert(simulated_state->human_count > 0);
   int killed_human_index[simulated_state->human_count];
   zero_array(killed_human_index, (size_t)simulated_state->human_count);
 
   zombies_eat_human(simulated_state, killed_zombie_index, killed_human_index);
 
-  /* step 5 calc scoring */
-  const struct scoring_and_kill_stat scoring_info =
-      calc_scoring(simulated_state, killed_zombie_index, killed_human_index);
-
-  const long scoring = scoring_info.scoring;
-  const int human_killed = scoring_info.human_killed;
-
-  /* step 6 recalc zombie and humans */
-  if (human_killed > 0) {
-    simulated_state->human_count =
-        vacuum(killed_human_index, simulated_state->human,
-               simulated_state->human_id, simulated_state->human_count);
-  }
-
-  /* step 7 calc zombie next point*/
+  /* step 5 calc zombie next point*/
   calc_zombie_next_point(simulated_state, zombie_move_len);
+
+  /* step 6 calc scoring */
+  const long scoring =
+      calc_scoring(simulated_state, killed_zombie_index, killed_human_index);
 
   return scoring;
 }
