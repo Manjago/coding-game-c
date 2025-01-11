@@ -248,15 +248,13 @@ void any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
 }
 
 void zombies_eat_human(struct game_state *simulated_state,
-                       int killed_zombie_index[], int killed_human_index[]) {
+                       int killed_human_index[]) {
   bool human_killed = false;
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    if (killed_zombie_index[i]) {
-      continue;
-    }
     for (int j = 0; j < simulated_state->human_count; ++j) {
       if (point_equals(simulated_state->human[j], simulated_state->zombie[i])) {
         killed_human_index[j] = 1;
+        human_killed = true;
       }
     }
   }
@@ -329,7 +327,7 @@ long simulate_turn(struct game_state *simulated_state,
   int killed_human_index[simulated_state->human_count];
   zero_array(killed_human_index, (size_t)simulated_state->human_count);
 
-  zombies_eat_human(simulated_state, killed_zombie_index, killed_human_index);
+  zombies_eat_human(simulated_state, killed_human_index);
 
   /* step 5 calc zombie next point*/
   calc_zombie_next_point(simulated_state, zombie_move_len);
@@ -759,7 +757,6 @@ void test_simulate_turn() {
   assert(1 == simulated_state.zombie_count);
   const struct point expected_zombie_point = {19, 0};
   assert(point_equals(expected_zombie_point, simulated_state.zombie[0]));
-  dump_game_state(&simulated_state);
 
   // test step 4
   /* step 4 */
@@ -767,7 +764,11 @@ void test_simulate_turn() {
   int killed_human_index[simulated_state.human_count];
   zero_array(killed_human_index, (size_t)simulated_state.human_count);
 
-  zombies_eat_human(&simulated_state, killed_zombie_index, killed_human_index);
+  zombies_eat_human(&simulated_state, killed_human_index);
+  assert(0 == killed_human_index[0]);
+  assert(0 == killed_human_index[1]);
+  assert(2 == simulated_state.human_count);
+  dump_game_state(&simulated_state);
 }
 
 void tests() {
