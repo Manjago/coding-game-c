@@ -273,25 +273,7 @@ int zombies_eat_human(struct game_state *simulated_state) {
   return human_killed;
 }
 
-long calc_scoring(struct game_state *simulated_state,
-                                          int killed_zombie_index[],
-                                          int killed_human_index[]) {
-  const int zombie_killed =
-      sum_ones(killed_zombie_index, simulated_state->zombie_count);
-  const int human_killed =
-      sum_ones(killed_human_index, simulated_state->human_count);
-
-  long scoring = 0;
-  for (int i = 0; i < zombie_killed; ++i) {
-    long worth =
-        get_fibo(i) * (simulated_state->human_count - human_killed) * 10;
-    scoring += worth;
-  }
-
-  return scoring;
-}
-
-long calc_scoring_2(int zombie_killed, int human_count) {
+long calc_scoring(int zombie_killed, int human_count) {
   long scoring = 0;
   for (int i = 0; i < zombie_killed; ++i) {
     long worth = get_fibo(i) * human_count * 10;
@@ -344,7 +326,7 @@ long simulate_turn(struct game_state *simulated_state,
 
   /* step 6 calc scoring */
   const long scoring =
-      calc_scoring_2(killed_zombies_count, simulated_state->human_count);
+      calc_scoring(killed_zombies_count, simulated_state->human_count);
 
   return scoring;
 }
