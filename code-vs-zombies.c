@@ -290,7 +290,7 @@ int zombies_eat_human(struct game_state *simulated_state) {
 long calc_scoring(int zombie_killed, int human_count) {
   long scoring = 0;
   for (int i = 0; i < zombie_killed; ++i) {
-    long worth = get_fibo(i) * human_count * 10;
+    long worth = get_fibo(i) * human_count * human_count * 10;
     scoring += worth;
   }
 
@@ -788,10 +788,10 @@ void test_simulate_turn() {
   const struct point expexted_zombie_new = {21, 0};
   assert(point_equals(expexted_zombie_new, simulated_state.zombie_next[0]));
 
-      /* step 6 calc scoring */
+  /* step 6 calc scoring */
   const long scoring =
       calc_scoring(killed_zombie_count, simulated_state.human_count);
-  assert(20 == scoring);
+  assert(40 == scoring);
 }
 
 void test_2_zombies() {
