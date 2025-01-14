@@ -228,7 +228,9 @@ int vacuum(int arr_to_remove[], struct point arr_data[], int arr_id[],
 
 int any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
                                       int critical_dist_2) {
-  assert(simulated_state->zombie_count > 0);
+  if (simulated_state->zombie_count <= 0) {
+    return 0;
+  }
   int killed_zombie_index[simulated_state->zombie_count];
   zero_array(killed_zombie_index, (size_t)simulated_state->zombie_count);
 
@@ -252,7 +254,9 @@ int any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
 }
 
 int zombies_eat_human(struct game_state *simulated_state) {
-  assert(simulated_state->human_count > 0);
+  if (simulated_state->human_count <= 0) {
+    return 0;
+  }
   int killed_human_index[simulated_state->human_count];
   zero_array(killed_human_index, (size_t)simulated_state->human_count);
 
@@ -384,10 +388,12 @@ void move2(const struct game_state *actual_state,
   struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
+  int seen = 0;
 
   while (has_time(start_t, clock(), response_time_ms)) {
     generate_a_random_strategy(actual_state->zombie_count, &pretender_strategy,
                                &rand);
+    ++seen;
     long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
     if (scoring > current_scoring) {
       current_scoring = scoring;
@@ -396,6 +402,8 @@ void move2(const struct game_state *actual_state,
   }
 
   const struct point move = apply_the_first_move(&current_strategy);
+  dump_game_state(actual_state);
+  fprintf(stderr, "seen %d strategies, best score %ld\n", seen, current_scoring);
   sendMove(move);
 }
 
