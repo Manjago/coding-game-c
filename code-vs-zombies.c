@@ -36,11 +36,16 @@ long get_fibo(int num) {
   }
 }
 
-int index_by_value(int arr[], int size, int value) {
+int index_by_value(int arr[], int size, int value, bool trace) {  
+  if (trace) printf("index_by_value size=%d, value = %d\n", size, value);
   for (int i = 0; i < size; ++i) {
     if (arr[i] == value) {
+      if (trace)
+        printf("index_by_value really %d == %d for i=%d\n", arr[i], value, i);
       return i;
     }
+    if (trace)
+      printf("index_by_value no %d != %d for i=%d\n", arr[i], value, i);
   }
   return -1;
 }
@@ -70,10 +75,11 @@ struct point {
   int x, y;
 };
 
-int dist2(struct point a, struct point b) {
-  const int dx = a.x - b.x;
-  const int dy = a.y - b.y;
-  return dx * dx + dy * dy;
+long dist2(struct point a, struct point b) {
+  const long dx = a.x - b.x;
+  const long dy = a.y - b.y;
+  long answer = dx * dx + dy * dy;
+  return answer;
 }
 
 bool point_equals(const struct point a, const struct point b) {
@@ -93,10 +99,10 @@ struct game_state {
 
 struct point find_nearest(const struct point tested, const struct point arr[],
                           int size) {
-  int answer_dist = -1;
+  long answer_dist = -1;
   int answer_index = -1;
   for (int i = 0; i < size; ++i) {
-    const int current_dist = dist2(tested, arr[i]);
+    const long current_dist = dist2(tested, arr[i]);
     if (answer_dist == -1 || current_dist < answer_dist) {
       answer_dist = current_dist;
       answer_index = i;
@@ -237,9 +243,13 @@ int any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
   int zombie_killed = 0;
 
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    const double kill_dist =
+    const long real_dist_2 =
         dist2(simulated_state->ash, simulated_state->zombie[i]);
-    if (kill_dist <= critical_dist_2) {
+/*    printf("%d for ash(%d,%d) and z (%d,%d) real dist 2 = %ld\n", i,
+           simulated_state->ash.x, simulated_state->ash.y,
+           simulated_state->zombie[i].x, simulated_state->zombie[i].y,
+           real_dist_2);*/
+    if (real_dist_2 <= (long)critical_dist_2) {
       killed_zombie_index[i] = 1;
       zombie_killed++;
     }
@@ -332,7 +342,16 @@ long simulate_turn(struct game_state *simulated_state,
   const long scoring =
       calc_scoring(killed_zombies_count, simulated_state->human_count);
 
+  //printf("scoring for killed %d: %ld\n", killed_zombies_count, scoring);
   return scoring;
+}
+
+long lmax(long a, long b) {
+  if (a > b) {
+    return a;
+  } else {
+    return b;
+  }
 }
 
 long simulate_the_strategy(const struct game_state *initial_state,
@@ -342,20 +361,25 @@ long simulate_the_strategy(const struct game_state *initial_state,
 
   struct game_state simulated_state = *initial_state;
   for (int i = 0; i < result->random_moves_count; ++i) {
+    //printf("random moves count: %d/%d\n", i, result->random_moves_count - 1);
     const struct point random_dest = {rand() % max_x_exclusive,
                                       rand() % max_y_exclusive};
     const struct point actual_dest =
         move_from_destination(simulated_state.ash, random_dest, max_ash_move);
     if (i == 0) {
       result->first_move = actual_dest;
+      //printf("set actual move to (%d,%d)\n", result->first_move.x,result->first_move.y);
     }
-    simulate_turn(&simulated_state, actual_dest, kill_dist_2, max_zombie_move);
+    long curr_scoring = simulate_turn(&simulated_state, actual_dest,
+                                      kill_dist_2, max_zombie_move);
+    scoring = lmax(curr_scoring, scoring);
   }
 
   int target_zombie_index;
+  int iterations = 0;
   while ((target_zombie_index = index_by_value(
               simulated_state.zombie_id, simulated_state.zombie_count,
-              result->target_zombie_id)) != -1) {
+              result->target_zombie_id, false)) != -1) {
     const struct point go_to = simulated_state.zombie[target_zombie_index];
 
     const struct point actual_dest =
@@ -365,9 +389,17 @@ long simulate_the_strategy(const struct game_state *initial_state,
       result->first_move = actual_dest;
     }
 
-    simulate_turn(&simulated_state, actual_dest, kill_dist_2, max_zombie_move);
+    //fprintf(stderr,"before sim\n");  
+    //dump_game_state(&simulated_state);
+    long curr_scoring = simulate_turn(&simulated_state, actual_dest,
+                                      kill_dist_2, max_zombie_move);
+    scoring = lmax(curr_scoring, scoring);
+    //fprintf(stderr, "after sim\n");
+    //dump_game_state(&simulated_state);
+    iterations++;
   }
 
+  //printf("iterations %d\n", iterations);
   return scoring;
 }
 
@@ -405,15 +437,6 @@ void move2(const struct game_state *actual_state,
   dump_game_state(actual_state);
   fprintf(stderr, "seen %d strategies, best score %ld\n", seen, current_scoring);
   sendMove(move);
-}
-
-void move(const struct game_state *src) {
-  clock_t start_t, end_t;
-  start_t = clock();
-  dump_game_state(src);
-  printf("0 0\n");
-  end_t = clock();
-  fprintf(stderr, "elapsed: %.3f ms\n", elapsed(start_t, end_t));
 }
 
 void game_loop() {
@@ -472,7 +495,6 @@ void game_loop() {
     // Write an action using printf(). DON'T FORGET THE TRAILING \n
     // To debug: fprintf(stderr, "Debug messages...\n");
 
-    // move(&game_state);
     move2(&game_state, &do_nothing_strategy, clock(), 100500);
   }
 }
@@ -534,16 +556,16 @@ void test_point_equals() {
 
 void test_index_by_value() {
   int a[4] = {0, 2, 2, 1};
-  assert(1 == index_by_value(a, 4, 2));
-  assert(0 == index_by_value(a, 4, 0));
-  assert(3 == index_by_value(a, 4, 1));
-  assert(-1 == index_by_value(a, 4, 3));
+  assert(1 == index_by_value(a, 4, 2, false));
+  assert(0 == index_by_value(a, 4, 0, false));
+  assert(3 == index_by_value(a, 4, 1, false));
+  assert(-1 == index_by_value(a, 4, 3, false));
 
   int c[5] = {1, 2, 3, 4, 5};
-  assert(-1 == index_by_value(c, 5, 0));
+  assert(-1 == index_by_value(c, 5, 0, false));
 
   int d[3] = {2, 2, 2};
-  assert(0 == index_by_value(d, 3, 2));
+  assert(0 == index_by_value(d, 3, 2, false));
 }
 
 void test_sum_ones() {
@@ -793,10 +815,11 @@ void test_2_zombies() {
                                        {{3100, 7000}, {11500, 7100}},
                                        {{2737, 68310}, {11115, 6990}}};
   
-  move2(&initial_state, &do_nothing_strategy, clock(), 1);
+  move2(&initial_state, &do_nothing_strategy, clock(), 10);
 }
 
 void tests() {
+  srand(42);
   test_get_fibo();
   test_dist2();
   test_point_equals();
