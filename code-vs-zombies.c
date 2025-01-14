@@ -440,7 +440,9 @@ void move2(const struct game_state *actual_state,
 }
 
 void game_loop() {
-  srand((unsigned int)time(NULL));
+  unsigned int seed = (unsigned int)time(NULL);
+  fprintf(stderr, "ver = 1.1, seed = %u\n", seed);
+  srand(seed);
 
   struct game_state game_state;
   int zombie_count_at_start = -1;
