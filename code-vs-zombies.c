@@ -384,13 +384,13 @@ while there is some time left
 apply the first move of the best strategy seen so far
 */
 void move2(const struct game_state *actual_state,
-           const struct strategy *initial_strategy, const clock_t start_t) {
+           const struct strategy *initial_strategy, const clock_t start_t, const int limit) {
   struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
   int seen = 0;
 
-  while (has_time(start_t, clock(), response_time_ms)) {
+  while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
     generate_a_random_strategy(actual_state->zombie_count, &pretender_strategy,
                                &rand);
     ++seen;
@@ -473,7 +473,7 @@ void game_loop() {
     // To debug: fprintf(stderr, "Debug messages...\n");
 
     // move(&game_state);
-    move2(&game_state, &do_nothing_strategy, clock());
+    move2(&game_state, &do_nothing_strategy, clock(), 100500);
   }
 }
 
@@ -763,7 +763,6 @@ void test_simulate_turn() {
 
   /* step 5 calc zombie next point*/
   calc_zombie_next_point(&simulated_state, 2);
-  dump_game_state(&simulated_state);
   const struct point expexted_zombie_new = {21, 0};
   assert(point_equals(expexted_zombie_new, simulated_state.zombie_next[0]));
 
@@ -771,7 +770,30 @@ void test_simulate_turn() {
   const long scoring =
       calc_scoring(killed_zombie_count, simulated_state.human_count);
   assert(20 == scoring);
-  printf("scoring %ld\n", scoring);
+}
+
+void test_2_zombies() {
+
+  struct strategy do_nothing_strategy;
+  do_nothing_strategy.random_moves_count = 0;
+  do_nothing_strategy.target_zombie_id = -1;
+
+  /*
+ Ash: (5000,0)
+ H: 0:(950,6000),1:(8000,6100)
+ Z: 0:(3100,7000)->(2737,6831),1:(11500,7100)->(11115,6990)
+ seen 30708 strategies, best score 0
+ */
+  struct game_state initial_state = {{5000, 0},
+                                       2,
+                                       {0, 1},
+                                       {{950, 60000}, {80000, 6100}},
+                                       2,
+                                       {0, 1},
+                                       {{3100, 7000}, {11500, 7100}},
+                                       {{2737, 68310}, {11115, 6990}}};
+  
+  move2(&initial_state, &do_nothing_strategy, clock(), 1);
 }
 
 void tests() {
@@ -788,6 +810,7 @@ void tests() {
   test_zero_array();
   test_vacuum();
   test_simulate_turn();
+  test_2_zombies();
   printf("All tests SUCCESSFUL!\n");
 }
 
