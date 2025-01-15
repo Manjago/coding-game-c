@@ -438,8 +438,11 @@ void move2(const struct game_state *actual_state,
            const int limit) {
 
   // just check
+  fprintf(stderr, "just check\n");
   struct game_state test_state = *actual_state;
   calc_zombie_next_point(&test_state, max_zombie_move);
+  dump_game_state(actual_state);
+  dump_game_state(&test_state);
   for (int i = 0; i < test_state.zombie_count; ++i) {
     if (!point_equals(test_state.zombie[i], actual_state->zombie_next[i])) {
       fprintf(stderr, "badpr %d,%d != %d,%d\n", test_state.zombie[i].x,
@@ -447,7 +450,7 @@ void move2(const struct game_state *actual_state,
               actual_state->zombie_next[i].y);
     }
   }
-  
+
   struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
@@ -479,7 +482,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.3.1, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.3.2, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
