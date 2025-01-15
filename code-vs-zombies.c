@@ -308,16 +308,26 @@ long calc_scoring(int zombie_killed, int human_count) {
   return scoring;
 }
 
+struct point calc_one_zombie_next_point(const struct point zombie,
+                                              const struct point human[],
+                                              const int human_count,
+                                              const int zombie_move_len) {
+  const struct point nearest_human =
+      find_nearest(zombie, human, human_count);
+
+  const struct point dest =
+      move_from_destination(zombie, nearest_human, zombie_move_len);
+  return dest;
+}
+
 void calc_zombie_next_point(struct game_state *simulated_state,
                             int zombie_move_len) {
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
+    const struct point dest =
+        calc_one_zombie_next_point(simulated_state->zombie[i],
+                                   simulated_state->human,
+                                   simulated_state->human_count, zombie_move_len);
 
-    const struct point nearest_human =
-        find_nearest(simulated_state->zombie[i], simulated_state->human,
-                     simulated_state->human_count);
-
-    const struct point dest = move_from_destination(
-        simulated_state->zombie[i], nearest_human, zombie_move_len);
     simulated_state->zombie_next[i] = dest;
   }
 }
@@ -439,15 +449,15 @@ void move2(const struct game_state *actual_state,
 
   // just check
   fprintf(stderr, "just check\n");
-  struct game_state test_state = *actual_state;
-  calc_zombie_next_point(&test_state, max_zombie_move);
   dump_game_state(actual_state);
-  dump_game_state(&test_state);
-  for (int i = 0; i < test_state.zombie_count; ++i) {
-    if (!point_equals(test_state.zombie[i], actual_state->zombie_next[i])) {
-      fprintf(stderr, "badpr %d,%d != %d,%d\n", test_state.zombie[i].x,
-              test_state.zombie[i].y, actual_state->zombie_next[i].x,
-              actual_state->zombie_next[i].y);
+  for (int i = 0; i < actual_state->zombie_count; ++i) {
+
+    const struct point new_dest = calc_one_zombie_next_point(actual_state->zombie[i], actual_state->human,
+                               actual_state->human_count, max_zombie_move);
+
+    if (!point_equals(new_dest, actual_state->zombie_next[i])) {
+      fprintf(stderr, "badpr i:%d %d,%d != %d,%d\n", i, new_dest.x, new_dest.y,
+              actual_state->zombie_next[i].x, actual_state->zombie_next[i].y);
     }
   }
 
@@ -458,7 +468,8 @@ void move2(const struct game_state *actual_state,
   bool chosen = false;
 
   while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
-    generate_a_random_strategy(actual_state->zombie_id, actual_state->zombie_count, &pretender_strategy,
+    generate_a_random_strategy(actual_state->zombie_id,
+                               actual_state->zombie_count, &pretender_strategy,
                                &rand);
     ++seen;
     long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
@@ -482,7 +493,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.3.2, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.3.3, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
