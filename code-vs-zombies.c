@@ -174,8 +174,8 @@ bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
 struct point move_from_destination(const struct point from,
                                    const struct point to, int max_dist) {
   struct point result;
-  const int delta_x = to.x - from.x;
-  const int delta_y = to.y - from.y;
+  const double delta_x = to.x - from.x;
+  const double delta_y = to.y - from.y;
   const double real_dist = hypot(delta_x, delta_y);
   if (real_dist <= max_dist) {
     result = to;
@@ -187,6 +187,10 @@ struct point move_from_destination(const struct point from,
     const int real_delta_y_int = (int)real_delta_y_double;
     result.x = from.x + real_delta_x_int;
     result.y = from.y + real_delta_y_int;
+    if (result.x < 0) {
+      fprintf(stderr, "from %d,%d, to %d,%d, dist %d result %d,%d", from.x,
+              from.y, to.x, to.y, max_dist, result.x, result.y);
+    }
   }
 
   return result;
@@ -359,6 +363,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
                            struct strategy *result) {
 
   long scoring = 0;
+  bool first_move_set = false;
 
   struct game_state simulated_state = *initial_state;
   for (int i = 0; i < result->random_moves_count; ++i) {
@@ -367,7 +372,8 @@ long simulate_the_strategy(const struct game_state *initial_state,
                                       rand() % max_y_exclusive};
     const struct point actual_dest =
         move_from_destination(simulated_state.ash, random_dest, max_ash_move);
-    if (i == 0) {
+    if (!first_move_set) {
+      first_move_set = true;
       result->first_move = actual_dest;
       // printf("set actual move to (%d,%d)\n",
       // result->first_move.x,result->first_move.y);
@@ -378,7 +384,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
   }
 
   int target_zombie_index;
-  int iterations = 0;
+  // int iterations = 0;
   while ((target_zombie_index = index_by_value(
               simulated_state.zombie_id, simulated_state.zombie_count,
               result->target_zombie_id, false)) != -1) {
@@ -387,10 +393,14 @@ long simulate_the_strategy(const struct game_state *initial_state,
     const struct point actual_dest =
         move_from_destination(simulated_state.ash, go_to, max_ash_move);
 
-    if (result->random_moves_count == 0) {
+    if (!first_move_set) {
+      first_move_set = true;
       result->first_move = actual_dest;
     }
 
+    if (!first_move_set) {
+      fprintf(stderr, "fisrt move not set\n");
+    }
     // fprintf(stderr,"before sim\n");
     // dump_game_state(&simulated_state);
     long curr_scoring = simulate_turn(&simulated_state, actual_dest,
@@ -398,7 +408,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     scoring = lmax(curr_scoring, scoring);
     // fprintf(stderr, "after sim\n");
     // dump_game_state(&simulated_state);
-    iterations++;
+    // iterations++;
   }
 
   // printf("iterations %d\n", iterations);
@@ -424,6 +434,7 @@ void move2(const struct game_state *actual_state,
   long current_scoring = -1;
   struct strategy pretender_strategy;
   int seen = 0;
+  bool chosen = false;
 
   while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
     generate_a_random_strategy(actual_state->zombie_count, &pretender_strategy,
@@ -433,11 +444,15 @@ void move2(const struct game_state *actual_state,
     if (scoring > current_scoring) {
       current_scoring = scoring;
       current_strategy = pretender_strategy;
+      chosen = true;
     };
   }
 
   const struct point move = apply_the_first_move(&current_strategy);
   dump_game_state(actual_state);
+  if (!chosen) {
+    fprintf(stderr, "not chosen!\n");
+  }
   fprintf(stderr, "seen %d strategies, best score %ld\n", seen,
           current_scoring);
   sendMove(move);
@@ -445,7 +460,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.1.1, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.2.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
