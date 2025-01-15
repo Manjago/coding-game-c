@@ -332,7 +332,7 @@ long simulate_turn(struct game_state *simulated_state,
   4. Zombies eat any human they share coordinates with.
   5-6. tech steps
   */
-
+  calc_zombie_next_point(simulated_state, zombie_move_len);
   /* step 1 */
   zombies_move_towards_their_targets(simulated_state);
 
@@ -436,6 +436,18 @@ apply the first move of the best strategy seen so far
 void move2(const struct game_state *actual_state,
            const struct strategy *initial_strategy, const clock_t start_t,
            const int limit) {
+
+  // just check
+  struct game_state test_state = *actual_state;
+  calc_zombie_next_point(&test_state, max_zombie_move);
+  for (int i = 0; i < test_state.zombie_count; ++i) {
+    if (!point_equals(test_state.zombie[i], actual_state->zombie_next[i])) {
+      fprintf(stderr, "badpr %d,%d != %d,%d\n", test_state.zombie[i].x,
+              test_state.zombie[i].y, actual_state->zombie_next[i].x,
+              actual_state->zombie_next[i].y);
+    }
+  }
+  
   struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
@@ -467,7 +479,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.3.0, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.3.1, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
