@@ -128,6 +128,12 @@ double elapsed(clock_t start_t, clock_t end_t) {
   return (double)delta_ticks / CLOCKS_PER_SEC * 1000.0;
 }
 
+void dump_strategy(const struct strategy *strategy) {
+  fprintf(stderr, "rnd: %d, z: %d, mv: %d,%d\n", strategy->random_moves_count,
+          strategy->target_zombie_id, strategy->first_move.x,
+          strategy->first_move.y);
+}
+
 void dump_game_state_ash(const struct game_state *state) {
   fprintf(stderr, "Ash: (%d,%d)\n", state->ash.x, state->ash.y);
 }
@@ -448,6 +454,7 @@ void move2(const struct game_state *actual_state,
     };
   }
 
+  dump_strategy(&current_strategy);
   const struct point move = apply_the_first_move(&current_strategy);
   dump_game_state(actual_state);
   if (!chosen) {
@@ -460,7 +467,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.2.0, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.2.1, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
