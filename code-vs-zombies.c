@@ -209,13 +209,13 @@ for each
 zombie still alive (the order of the zombies is also chosen randomly)
     move toward the zombie until he's killed
 */
-void generate_a_random_strategy(int zombie_count, struct strategy *result,
-                                int (*frand)()) {
+void generate_a_random_strategy(const int zombie_ids[], const int zombie_count,
+                                struct strategy *result, int (*frand)()) {
   assert(0 != zombie_count);
   const int x = (*frand)() % 4;
   result->random_moves_count = x;
   const int zombie_index = (*frand)() % zombie_count;
-  result->target_zombie_id = zombie_index;
+  result->target_zombie_id = zombie_ids[zombie_index];
 }
 
 void zombies_move_towards_their_targets(struct game_state *simulated_state) {
@@ -443,7 +443,7 @@ void move2(const struct game_state *actual_state,
   bool chosen = false;
 
   while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
-    generate_a_random_strategy(actual_state->zombie_count, &pretender_strategy,
+    generate_a_random_strategy(actual_state->zombie_id, actual_state->zombie_count, &pretender_strategy,
                                &rand);
     ++seen;
     long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
@@ -467,7 +467,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.2.1, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.3.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
@@ -707,8 +707,9 @@ int custom_rand() {
 
 void test_generate_a_random_strategy() {
   struct point not_changed_point = {42, 42};
+  int zombie_ids[3] = {0, 1, 2};
   struct strategy strategy = {0, 0, not_changed_point};
-  generate_a_random_strategy(3, &strategy, &custom_rand);
+  generate_a_random_strategy(zombie_ids, 3, &strategy, &custom_rand);
   assert(1 == strategy.random_moves_count);
   assert(0 == strategy.target_zombie_id);
   assert(point_equals(not_changed_point, strategy.first_move));
@@ -752,6 +753,17 @@ void test_vacuum() {
     int new_size = vacuum(arr_to_remove, arr_data, arr_id, 2);
 
     assert(0 == new_size);
+  }
+  {
+    int arr_to_remove[3] = {1, 0, 0};
+    struct point arr_data[5] = {{0, 1}, {2, 3}, {4, 5}};
+    int arr_id[5] = {0, 1, 2};
+
+    int new_size = vacuum(arr_to_remove, arr_data, arr_id, 3);
+
+    assert(2 == new_size);
+    assert(1 == arr_id[0]);
+    assert(2 == arr_id[1]);
   }
 }
 
