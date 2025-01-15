@@ -36,8 +36,9 @@ long get_fibo(int num) {
   }
 }
 
-int index_by_value(int arr[], int size, int value, bool trace) {  
-  if (trace) printf("index_by_value size=%d, value = %d\n", size, value);
+int index_by_value(int arr[], int size, int value, bool trace) {
+  if (trace)
+    printf("index_by_value size=%d, value = %d\n", size, value);
   for (int i = 0; i < size; ++i) {
     if (arr[i] == value) {
       if (trace)
@@ -233,7 +234,7 @@ int vacuum(int arr_to_remove[], struct point arr_data[], int arr_id[],
 }
 
 int any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
-                                      int critical_dist_2) {
+                                     int critical_dist_2) {
   if (simulated_state->zombie_count <= 0) {
     return 0;
   }
@@ -245,10 +246,10 @@ int any_zombie_in_range_is_destroyed(struct game_state *simulated_state,
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
     const long real_dist_2 =
         dist2(simulated_state->ash, simulated_state->zombie[i]);
-/*    printf("%d for ash(%d,%d) and z (%d,%d) real dist 2 = %ld\n", i,
-           simulated_state->ash.x, simulated_state->ash.y,
-           simulated_state->zombie[i].x, simulated_state->zombie[i].y,
-           real_dist_2);*/
+    /*    printf("%d for ash(%d,%d) and z (%d,%d) real dist 2 = %ld\n", i,
+               simulated_state->ash.x, simulated_state->ash.y,
+               simulated_state->zombie[i].x, simulated_state->zombie[i].y,
+               real_dist_2);*/
     if (real_dist_2 <= (long)critical_dist_2) {
       killed_zombie_index[i] = 1;
       zombie_killed++;
@@ -329,8 +330,8 @@ long simulate_turn(struct game_state *simulated_state,
   ash_moves_towards_his_target(simulated_state, ash_move);
 
   /* step 3 */
-  int killed_zombies_count = any_zombie_in_range_is_destroyed(
-      simulated_state, critical_dist_2);
+  int killed_zombies_count =
+      any_zombie_in_range_is_destroyed(simulated_state, critical_dist_2);
 
   /* step 4 */
   zombies_eat_human(simulated_state);
@@ -342,7 +343,7 @@ long simulate_turn(struct game_state *simulated_state,
   const long scoring =
       calc_scoring(killed_zombies_count, simulated_state->human_count);
 
-  //printf("scoring for killed %d: %ld\n", killed_zombies_count, scoring);
+  // printf("scoring for killed %d: %ld\n", killed_zombies_count, scoring);
   return scoring;
 }
 
@@ -361,14 +362,15 @@ long simulate_the_strategy(const struct game_state *initial_state,
 
   struct game_state simulated_state = *initial_state;
   for (int i = 0; i < result->random_moves_count; ++i) {
-    //printf("random moves count: %d/%d\n", i, result->random_moves_count - 1);
+    // printf("random moves count: %d/%d\n", i, result->random_moves_count - 1);
     const struct point random_dest = {rand() % max_x_exclusive,
                                       rand() % max_y_exclusive};
     const struct point actual_dest =
         move_from_destination(simulated_state.ash, random_dest, max_ash_move);
     if (i == 0) {
       result->first_move = actual_dest;
-      //printf("set actual move to (%d,%d)\n", result->first_move.x,result->first_move.y);
+      // printf("set actual move to (%d,%d)\n",
+      // result->first_move.x,result->first_move.y);
     }
     long curr_scoring = simulate_turn(&simulated_state, actual_dest,
                                       kill_dist_2, max_zombie_move);
@@ -389,17 +391,17 @@ long simulate_the_strategy(const struct game_state *initial_state,
       result->first_move = actual_dest;
     }
 
-    //fprintf(stderr,"before sim\n");  
-    //dump_game_state(&simulated_state);
+    // fprintf(stderr,"before sim\n");
+    // dump_game_state(&simulated_state);
     long curr_scoring = simulate_turn(&simulated_state, actual_dest,
                                       kill_dist_2, max_zombie_move);
     scoring = lmax(curr_scoring, scoring);
-    //fprintf(stderr, "after sim\n");
-    //dump_game_state(&simulated_state);
+    // fprintf(stderr, "after sim\n");
+    // dump_game_state(&simulated_state);
     iterations++;
   }
 
-  //printf("iterations %d\n", iterations);
+  // printf("iterations %d\n", iterations);
   return scoring;
 }
 
@@ -416,7 +418,8 @@ while there is some time left
 apply the first move of the best strategy seen so far
 */
 void move2(const struct game_state *actual_state,
-           const struct strategy *initial_strategy, const clock_t start_t, const int limit) {
+           const struct strategy *initial_strategy, const clock_t start_t,
+           const int limit) {
   struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
@@ -435,17 +438,17 @@ void move2(const struct game_state *actual_state,
 
   const struct point move = apply_the_first_move(&current_strategy);
   dump_game_state(actual_state);
-  fprintf(stderr, "seen %d strategies, best score %ld\n", seen, current_scoring);
+  fprintf(stderr, "seen %d strategies, best score %ld\n", seen,
+          current_scoring);
   sendMove(move);
 }
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.1, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.1.1, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
-  int zombie_count_at_start = -1;
   struct strategy do_nothing_strategy;
   do_nothing_strategy.random_moves_count = 0;
   do_nothing_strategy.target_zombie_id = -1;
@@ -475,9 +478,6 @@ void game_loop() {
     int zombie_count;
     scanf("%d", &zombie_count);
     game_state.zombie_count = zombie_count;
-    if (zombie_count_at_start != -1) {
-      zombie_count_at_start = zombie_count;
-    }
 
     for (int i = 0; i < zombie_count; i++) {
       int zombie_id;
@@ -809,14 +809,14 @@ void test_2_zombies() {
  seen 30708 strategies, best score 0
  */
   struct game_state initial_state = {{5000, 0},
-                                       2,
-                                       {0, 1},
-                                       {{950, 60000}, {80000, 6100}},
-                                       2,
-                                       {0, 1},
-                                       {{3100, 7000}, {11500, 7100}},
-                                       {{2737, 68310}, {11115, 6990}}};
-  
+                                     2,
+                                     {0, 1},
+                                     {{950, 60000}, {80000, 6100}},
+                                     2,
+                                     {0, 1},
+                                     {{3100, 7000}, {11500, 7100}},
+                                     {{2737, 68310}, {11115, 6990}}};
+
   move2(&initial_state, &do_nothing_strategy, clock(), 10);
 }
 
