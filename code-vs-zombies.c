@@ -177,6 +177,12 @@ bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
   return elapsed_ms <= limit_ms;
 }
 
+/*
+todo
+For example, if a zombie were to move from X=0, Y=0 towards X=500, Y=500, since
+it may only travel 400 units in one turn it should land on X=282.843, Y=282.843
+but will in fact land on X=282, Y=282.
+*/
 struct point move_from_destination(const struct point from,
                                    const struct point to, int max_dist) {
   struct point result;
