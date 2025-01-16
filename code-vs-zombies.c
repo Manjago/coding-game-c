@@ -177,21 +177,18 @@ bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
   return elapsed_ms <= limit_ms;
 }
 
-/*
-todo
-For example, if a zombie were to move from X=0, Y=0 towards X=500, Y=500, since
-it may only travel 400 units in one turn it should land on X=282.843, Y=282.843
-but will in fact land on X=282, Y=282.
-*/
 struct point move_from_destination(const struct point from,
                                    const struct point to, int max_dist) {
   struct point result;
   const double delta_x = to.x - from.x;
   const double delta_y = to.y - from.y;
   const double real_dist = hypot(delta_x, delta_y);
-  if (real_dist <= max_dist) {
+  //printf("real_dist %f\n", real_dist);
+  if (trunc(real_dist) <= max_dist) {
+    //printf("%f <= %d", real_dist, max_dist);
     result = to;
   } else {
+    //printf("%f > %d\n", real_dist, max_dist);
     const double coeff = real_dist / max_dist;
     const double real_delta_x_double = trunc(delta_x / coeff);
     const double real_delta_y_double = trunc(delta_y / coeff);
@@ -315,11 +312,10 @@ long calc_scoring(int zombie_killed, int human_count) {
 }
 
 struct point calc_one_zombie_next_point(const struct point zombie,
-                                              const struct point human[],
-                                              const int human_count,
-                                              const int zombie_move_len) {
-  const struct point nearest_human =
-      find_nearest(zombie, human, human_count);
+                                        const struct point human[],
+                                        const int human_count,
+                                        const int zombie_move_len) {
+  const struct point nearest_human = find_nearest(zombie, human, human_count);
 
   const struct point dest =
       move_from_destination(zombie, nearest_human, zombie_move_len);
@@ -329,10 +325,9 @@ struct point calc_one_zombie_next_point(const struct point zombie,
 void calc_zombie_next_point(struct game_state *simulated_state,
                             int zombie_move_len) {
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
-    const struct point dest =
-        calc_one_zombie_next_point(simulated_state->zombie[i],
-                                   simulated_state->human,
-                                   simulated_state->human_count, zombie_move_len);
+    const struct point dest = calc_one_zombie_next_point(
+        simulated_state->zombie[i], simulated_state->human,
+        simulated_state->human_count, zombie_move_len);
 
     simulated_state->zombie_next[i] = dest;
   }
@@ -458,8 +453,9 @@ void move2(const struct game_state *actual_state,
   dump_game_state(actual_state);
   for (int i = 0; i < actual_state->zombie_count; ++i) {
 
-    const struct point new_dest = calc_one_zombie_next_point(actual_state->zombie[i], actual_state->human,
-                               actual_state->human_count, max_zombie_move);
+    const struct point new_dest =
+        calc_one_zombie_next_point(actual_state->zombie[i], actual_state->human,
+                                   actual_state->human_count, max_zombie_move);
 
     if (!point_equals(new_dest, actual_state->zombie_next[i])) {
       fprintf(stderr, "badpr i:%d %d,%d != %d,%d\n", i, new_dest.x, new_dest.y,
@@ -499,7 +495,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.3.4, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.4.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
@@ -726,6 +722,32 @@ void test_move_from_destination() {
   const struct point f_expected = {4, 6};
   assert(point_equals(f_to, move_from_destination(f_from, f_to, 10)));
   assert(point_equals(f_expected, move_from_destination(f_from, f_to, 5)));
+
+  {
+    /*
+    For example, if a zombie were to move from X=0, Y=0 towards X=500, Y=500,
+    since it may only travel 400 units in one turn it should land on X=282.843,
+    Y=282.843 but will in fact land on X=282, Y=282.
+    */
+    const struct point from = {0, 0};
+    const struct point to = {500, 500};
+    const struct point expected = {282, 282};
+    assert(point_equals(expected, move_from_destination(from, to, 400)));
+  }
+
+  {
+    /*
+    Z: 0:(3100,7000)->(2737,6831),1:(11500,7100)->(11115,6990)
+    badpr i:0 2738,6832 != 2737,6831
+    badpr i:1 11116,6991 != 11115,6990
+   */
+    const struct point from = {3100, 7000};
+    const struct point to = {2737, 6831};
+    const struct point actual = move_from_destination(from, to, 400);
+    //printf("actual %d,%d\n", actual.x, actual.y);
+    const struct point expected = {2737, 6831};
+    assert(point_equals(expected, actual));
+  }
 }
 
 int custom_rand() {
