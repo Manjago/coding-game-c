@@ -182,9 +182,9 @@ struct point move_from_destination(const struct point from,
   struct point result;
   const double delta_x = to.x - from.x;
   const double delta_y = to.y - from.y;
-  const double real_dist = hypot(delta_x, delta_y);
+  const double real_dist = trunc(hypot(delta_x, delta_y));
   //printf("real_dist %f\n", real_dist);
-  if (trunc(real_dist) <= max_dist) {
+  if (real_dist <= max_dist) {
     //printf("%f <= %d", real_dist, max_dist);
     result = to;
   } else {
@@ -495,7 +495,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.4.0, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.4.1, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
