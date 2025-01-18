@@ -185,24 +185,25 @@ struct point move_from_destination(const struct point from,
   const double delta_y = to.y - from.y;
   const double real_dist = trunc(hypot(delta_x, delta_y));
   if (trace)
-    printf("real_dist %f from %f %f\n", real_dist, delta_x, delta_y);
+    fprintf(stderr, "real_dist %f from %f %f\n", real_dist, delta_x, delta_y);
   if (real_dist <= max_dist) {
     if (trace)
-      printf("%f <= %d", real_dist, max_dist);
+      fprintf(stderr, "%f <= %d", real_dist, max_dist);
     result = to;
   } else {
     if (trace)
-      printf("%f > %d\n", real_dist, max_dist);
+      fprintf(stderr, "%f > %d\n", real_dist, max_dist);
     const double coeff = real_dist / max_dist;
     const double real_delta_x_double = trunc(delta_x / coeff);
     const double real_delta_y_double = trunc(delta_y / coeff);
     const int real_delta_x_int = (int)real_delta_x_double;
     const int real_delta_y_int = (int)real_delta_y_double;
     if (trace)
-      printf("coeff %f, delta_x_dbl %f, delta_y_dbl %f, delta_x_int %d, "
-             "delta_y_int %d\n",
-             coeff, real_delta_x_double, real_delta_y_double, real_delta_x_int,
-             real_delta_y_int);
+      fprintf(stderr,
+              "coeff %f, delta_x_dbl %f, delta_y_dbl %f, delta_x_int %d, "
+              "delta_y_int %d\n",
+              coeff, real_delta_x_double, real_delta_y_double, real_delta_x_int,
+              real_delta_y_int);
     result.x = from.x + real_delta_x_int;
     result.y = from.y + real_delta_y_int;
     if (result.x < 0 || result.y < 0) {
@@ -505,7 +506,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.4.2, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.4.3, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
