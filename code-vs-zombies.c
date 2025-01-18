@@ -178,22 +178,31 @@ bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
 }
 
 struct point move_from_destination(const struct point from,
-                                   const struct point to, int max_dist) {
+                                   const struct point to, int max_dist,
+                                   const bool trace) {
   struct point result;
   const double delta_x = to.x - from.x;
   const double delta_y = to.y - from.y;
   const double real_dist = trunc(hypot(delta_x, delta_y));
-  //printf("real_dist %f\n", real_dist);
+  if (trace)
+    printf("real_dist %f from %f %f\n", real_dist, delta_x, delta_y);
   if (real_dist <= max_dist) {
-    //printf("%f <= %d", real_dist, max_dist);
+    if (trace)
+      printf("%f <= %d", real_dist, max_dist);
     result = to;
   } else {
-    //printf("%f > %d\n", real_dist, max_dist);
+    if (trace)
+      printf("%f > %d\n", real_dist, max_dist);
     const double coeff = real_dist / max_dist;
     const double real_delta_x_double = trunc(delta_x / coeff);
     const double real_delta_y_double = trunc(delta_y / coeff);
     const int real_delta_x_int = (int)real_delta_x_double;
     const int real_delta_y_int = (int)real_delta_y_double;
+    if (trace)
+      printf("coeff %f, delta_x_dbl %f, delta_y_dbl %f, delta_x_int %d, "
+             "delta_y_int %d\n",
+             coeff, real_delta_x_double, real_delta_y_double, real_delta_x_int,
+             real_delta_y_int);
     result.x = from.x + real_delta_x_int;
     result.y = from.y + real_delta_y_int;
     if (result.x < 0 || result.y < 0) {
@@ -314,11 +323,12 @@ long calc_scoring(int zombie_killed, int human_count) {
 struct point calc_one_zombie_next_point(const struct point zombie,
                                         const struct point human[],
                                         const int human_count,
-                                        const int zombie_move_len) {
+                                        const int zombie_move_len,
+                                        const bool trace) {
   const struct point nearest_human = find_nearest(zombie, human, human_count);
 
   const struct point dest =
-      move_from_destination(zombie, nearest_human, zombie_move_len);
+      move_from_destination(zombie, nearest_human, zombie_move_len, trace);
   return dest;
 }
 
@@ -327,7 +337,7 @@ void calc_zombie_next_point(struct game_state *simulated_state,
   for (int i = 0; i < simulated_state->zombie_count; ++i) {
     const struct point dest = calc_one_zombie_next_point(
         simulated_state->zombie[i], simulated_state->human,
-        simulated_state->human_count, zombie_move_len);
+        simulated_state->human_count, zombie_move_len, false);
 
     simulated_state->zombie_next[i] = dest;
   }
@@ -387,8 +397,8 @@ long simulate_the_strategy(const struct game_state *initial_state,
     // printf("random moves count: %d/%d\n", i, result->random_moves_count - 1);
     const struct point random_dest = {rand() % max_x_exclusive,
                                       rand() % max_y_exclusive};
-    const struct point actual_dest =
-        move_from_destination(simulated_state.ash, random_dest, max_ash_move);
+    const struct point actual_dest = move_from_destination(
+        simulated_state.ash, random_dest, max_ash_move, false);
     if (!first_move_set) {
       first_move_set = true;
       result->first_move = actual_dest;
@@ -408,7 +418,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     const struct point go_to = simulated_state.zombie[target_zombie_index];
 
     const struct point actual_dest =
-        move_from_destination(simulated_state.ash, go_to, max_ash_move);
+        move_from_destination(simulated_state.ash, go_to, max_ash_move, false);
 
     if (!first_move_set) {
       first_move_set = true;
@@ -453,9 +463,9 @@ void move2(const struct game_state *actual_state,
   dump_game_state(actual_state);
   for (int i = 0; i < actual_state->zombie_count; ++i) {
 
-    const struct point new_dest =
-        calc_one_zombie_next_point(actual_state->zombie[i], actual_state->human,
-                                   actual_state->human_count, max_zombie_move);
+    const struct point new_dest = calc_one_zombie_next_point(
+        actual_state->zombie[i], actual_state->human, actual_state->human_count,
+        max_zombie_move, true);
 
     if (!point_equals(new_dest, actual_state->zombie_next[i])) {
       fprintf(stderr, "badpr i:%d %d,%d != %d,%d\n", i, new_dest.x, new_dest.y,
@@ -495,7 +505,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.4.1, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.4.2, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
@@ -694,34 +704,40 @@ void test_move_from_destination() {
   const struct point a_from = {0, 0};
   const struct point a_to = {10, 0};
   const struct point a_expected = {5, 0};
-  assert(point_equals(a_expected, move_from_destination(a_from, a_to, 5)));
-  assert(point_equals(a_to, move_from_destination(a_from, a_to, 10)));
+  assert(
+      point_equals(a_expected, move_from_destination(a_from, a_to, 5, false)));
+  assert(point_equals(a_to, move_from_destination(a_from, a_to, 10, false)));
 
   const struct point b_from = {-5, -5};
   const struct point b_to = {10, 10};
   const struct point b_expected = {0, 0};
-  assert(point_equals(b_expected, move_from_destination(b_from, b_to, 8)));
+  assert(
+      point_equals(b_expected, move_from_destination(b_from, b_to, 8, false)));
 
   const struct point c_from = {0, 0};
   const struct point c_to = {10, 10};
   const struct point c_expected = {0, 0};
-  assert(point_equals(c_expected, move_from_destination(c_from, c_to, 0)));
+  assert(
+      point_equals(c_expected, move_from_destination(c_from, c_to, 0, false)));
 
   const struct point d_from = {5, 5};
   const struct point d_to = {5, 5};
   const struct point d_expected = {5, 5};
-  assert(point_equals(d_expected, move_from_destination(d_from, d_to, 10)));
+  assert(
+      point_equals(d_expected, move_from_destination(d_from, d_to, 10, false)));
 
   const struct point e_from = {0, 0};
   const struct point e_to = {5, 5};
   const struct point e_expected = {5, 5};
-  assert(point_equals(e_expected, move_from_destination(e_from, e_to, 10)));
+  assert(
+      point_equals(e_expected, move_from_destination(e_from, e_to, 10, false)));
 
   const struct point f_from = {1, 2};
   const struct point f_to = {4, 6};
   const struct point f_expected = {4, 6};
-  assert(point_equals(f_to, move_from_destination(f_from, f_to, 10)));
-  assert(point_equals(f_expected, move_from_destination(f_from, f_to, 5)));
+  assert(point_equals(f_to, move_from_destination(f_from, f_to, 10, false)));
+  assert(
+      point_equals(f_expected, move_from_destination(f_from, f_to, 5, false)));
 
   {
     /*
@@ -732,7 +748,7 @@ void test_move_from_destination() {
     const struct point from = {0, 0};
     const struct point to = {500, 500};
     const struct point expected = {282, 282};
-    assert(point_equals(expected, move_from_destination(from, to, 400)));
+    assert(point_equals(expected, move_from_destination(from, to, 400, false)));
   }
 
   {
@@ -741,12 +757,14 @@ void test_move_from_destination() {
     badpr i:0 2738,6832 != 2737,6831
     badpr i:1 11116,6991 != 11115,6990
    */
+    printf("bgntst\n");
     const struct point from = {3100, 7000};
     const struct point to = {2737, 6831};
-    const struct point actual = move_from_destination(from, to, 400);
-    //printf("actual %d,%d\n", actual.x, actual.y);
+    const struct point actual = move_from_destination(from, to, 400, true);
+    // printf("actual %d,%d\n", actual.x, actual.y);
     const struct point expected = {2737, 6831};
     assert(point_equals(expected, actual));
+    printf("endtst\n");
   }
 }
 
