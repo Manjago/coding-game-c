@@ -413,7 +413,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     }
     long curr_scoring = simulate_turn(&simulated_state, actual_dest,
                                       kill_dist_2, max_zombie_move);
-    scoring = lmax(curr_scoring, scoring);
+    scoring += curr_scoring;
   }
 
   int target_zombie_index;
@@ -438,7 +438,7 @@ long simulate_the_strategy(const struct game_state *initial_state,
     // dump_game_state(&simulated_state);
     long curr_scoring = simulate_turn(&simulated_state, actual_dest,
                                       kill_dist_2, max_zombie_move);
-    scoring = lmax(curr_scoring, scoring);
+    scoring += curr_scoring;
     // fprintf(stderr, "after sim\n");
     // dump_game_state(&simulated_state);
     // iterations++;
@@ -496,7 +496,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.4.6, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.5.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
