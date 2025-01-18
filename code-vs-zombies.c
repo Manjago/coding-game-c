@@ -180,6 +180,10 @@ bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
 struct point move_from_destination(const struct point from,
                                    const struct point to, int max_dist,
                                    const bool trace) {
+  if (trace) {
+    fprintf(stderr, "from %d,%d to %d,%d, max_dist %d",
+            from.x, from.y, to.x, to.y, max_dist);
+  }
   struct point result;
   const double delta_x = to.x - from.x;
   const double delta_y = to.y - from.y;
@@ -207,7 +211,7 @@ struct point move_from_destination(const struct point from,
     result.x = from.x + real_delta_x_int;
     result.y = from.y + real_delta_y_int;
     if (result.x < 0 || result.y < 0) {
-      fprintf(stderr, "from %d,%d, to %d,%d, dist %d result %d,%d", from.x,
+      fprintf(stderr, "from %d,%d, to %d,%d, dist %d result %d,%d\n", from.x,
               from.y, to.x, to.y, max_dist, result.x, result.y);
     }
   }
@@ -506,7 +510,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.4.3, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.4.4, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
@@ -758,14 +762,12 @@ void test_move_from_destination() {
     badpr i:0 2738,6832 != 2737,6831
     badpr i:1 11116,6991 != 11115,6990
    */
-    printf("bgntst\n");
     const struct point from = {3100, 7000};
     const struct point to = {2737, 6831};
-    const struct point actual = move_from_destination(from, to, 400, true);
+    const struct point actual = move_from_destination(from, to, 400, false);
     // printf("actual %d,%d\n", actual.x, actual.y);
     const struct point expected = {2737, 6831};
     assert(point_equals(expected, actual));
-    printf("endtst\n");
   }
 }
 
