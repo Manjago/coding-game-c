@@ -198,10 +198,10 @@ struct point move_from_destination(const struct point from,
     if (trace)
       fprintf(stderr, "%f > %d\n", real_dist, max_dist);
     const double coeff = real_dist / max_dist;
-    const double real_delta_x_double = trunc(delta_x / coeff);
-    const double real_delta_y_double = trunc(delta_y / coeff);
-    const int real_delta_x_int = (int)real_delta_x_double;
-    const int real_delta_y_int = (int)real_delta_y_double;
+    const double real_delta_x_double = delta_x / coeff;
+    const double real_delta_y_double = delta_y / coeff;
+    const int real_delta_x_int = (int)(floor(real_delta_x_double));
+    const int real_delta_y_int = (int)(floor(real_delta_y_double));
     if (trace)
       fprintf(stderr,
               "coeff %f, delta_x_dbl %f, delta_y_dbl %f, delta_x_int %d, "
@@ -210,6 +210,7 @@ struct point move_from_destination(const struct point from,
               real_delta_y_int);
     result.x = from.x + real_delta_x_int;
     result.y = from.y + real_delta_y_int;
+    if (trace) fprintf(stderr, "actual result (%d,%d)\n", result.x, result.y);
     if (result.x < 0 || result.y < 0) {
       fprintf(stderr, "from %d,%d, to %d,%d, dist %d result %d,%d\n", from.x,
               from.y, to.x, to.y, max_dist, result.x, result.y);
@@ -510,7 +511,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.4.4, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.4.5, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
@@ -706,6 +707,23 @@ void test_has_time() {
 }
 
 void test_move_from_destination() {
+  {
+    /*
+    H: 0:(950,6000),1:(8000,6100)
+    Z: 0:(3100,7000)->(2737,6831),1:(11500,7100)->(11115,6990)
+    from 3100,7000 to 950,6000, max_dist 400real_dist 2371.000000 from
+    -2150.000000 -1000.000000 2371.000000 > 400 coeff 5.927500, delta_x_dbl
+    -362.000000, delta_y_dbl -168.000000, delta_x_int -362, delta_y_int -168
+    badpr i:0 2738,6832 != 2737,6831
+    */
+    const struct point from = {3100, 7000};
+    const struct point to = {950, 6000};
+    const struct point actual = move_from_destination(from, to, 400, true);
+    const struct point expected = {2737, 6831};
+    fprintf(stderr, "actual %d,%d\n", actual.x, actual.y);
+    assert(point_equals(expected, actual));
+  }
+
   const struct point a_from = {0, 0};
   const struct point a_to = {10, 0};
   const struct point a_expected = {5, 0};
@@ -717,7 +735,7 @@ void test_move_from_destination() {
   const struct point b_to = {10, 10};
   const struct point b_expected = {0, 0};
   assert(
-      point_equals(b_expected, move_from_destination(b_from, b_to, 8, false)));
+      point_equals(b_expected, move_from_destination(b_from, b_to, 8, true)));
 
   const struct point c_from = {0, 0};
   const struct point c_to = {10, 10};
@@ -753,7 +771,7 @@ void test_move_from_destination() {
     const struct point from = {0, 0};
     const struct point to = {500, 500};
     const struct point expected = {282, 282};
-    assert(point_equals(expected, move_from_destination(from, to, 400, false)));
+    assert(point_equals(expected, move_from_destination(from, to, 400, true)));
   }
 
   {
@@ -769,6 +787,7 @@ void test_move_from_destination() {
     const struct point expected = {2737, 6831};
     assert(point_equals(expected, actual));
   }
+
 }
 
 int custom_rand() {
