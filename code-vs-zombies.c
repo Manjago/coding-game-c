@@ -501,6 +501,7 @@ void move2(const struct game_state *actual_state,
            const struct strategy *initial_strategy, const clock_t start_t,
            const int limit) {
 
+  dump_game_state(actual_state);
   struct strategy current_strategy = *initial_strategy;
   long current_scoring = -1;
   struct strategy pretender_strategy;
@@ -510,6 +511,7 @@ void move2(const struct game_state *actual_state,
   int eaten_human_index =
       eaten_by_zombie_may_rescue(actual_state, ash_may_rescue_2);
   if (eaten_human_index != -1) {
+    fprintf(stderr, "eaten human %d found\n", eaten_human_index);
     pretender_strategy.target_zombie_id = -1;
     pretender_strategy.random_moves_count = -1;
     pretender_strategy.first_move = actual_state->human[eaten_human_index];
@@ -541,7 +543,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.7.0, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.7.2, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
