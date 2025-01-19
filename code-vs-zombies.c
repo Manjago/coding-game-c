@@ -435,31 +435,40 @@ long simulate_the_strategy(const struct game_state *initial_state,
   }
 
   int target_zombie_index;
-  // int iterations = 0;
-  while ((target_zombie_index = index_by_value(
-              simulated_state.zombie_id, simulated_state.zombie_count,
-              result->target_zombie_id, false)) != -1) {
-    const struct point go_to = simulated_state.zombie[target_zombie_index];
 
-    const struct point actual_dest =
-        move_from_destination(simulated_state.ash, go_to, max_ash_move, false);
+  while (simulated_state.zombie_count) {
 
-    if (!first_move_set) {
-      first_move_set = true;
-      result->first_move = actual_dest;
+    // int iterations = 0;
+    while ((target_zombie_index = index_by_value(
+                simulated_state.zombie_id, simulated_state.zombie_count,
+                result->target_zombie_id, false)) != -1) {
+      const struct point go_to = simulated_state.zombie[target_zombie_index];
+
+      const struct point actual_dest = move_from_destination(
+          simulated_state.ash, go_to, max_ash_move, false);
+
+      if (!first_move_set) {
+        first_move_set = true;
+        result->first_move = actual_dest;
+      }
+
+      if (!first_move_set) {
+        fprintf(stderr, "fisrt move not set\n");
+      }
+      // fprintf(stderr,"before sim\n");
+      // dump_game_state(&simulated_state);
+      long curr_scoring = simulate_turn(&simulated_state, actual_dest,
+                                        kill_dist_2, max_zombie_move);
+      scoring += curr_scoring;
+      // fprintf(stderr, "after sim\n");
+      // dump_game_state(&simulated_state);
+      // iterations++;
     }
 
-    if (!first_move_set) {
-      fprintf(stderr, "fisrt move not set\n");
+    if (simulated_state.zombie_count) {
+      const int zombie_index = rand() % simulated_state.zombie_count;
+      result->target_zombie_id = simulated_state.zombie_id[zombie_index];
     }
-    // fprintf(stderr,"before sim\n");
-    // dump_game_state(&simulated_state);
-    long curr_scoring = simulate_turn(&simulated_state, actual_dest,
-                                      kill_dist_2, max_zombie_move);
-    scoring += curr_scoring;
-    // fprintf(stderr, "after sim\n");
-    // dump_game_state(&simulated_state);
-    // iterations++;
   }
 
   // printf("iterations %d\n", iterations);
@@ -515,7 +524,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.8.0, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.9.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
