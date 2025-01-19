@@ -520,15 +520,15 @@ void move2(const struct game_state *actual_state,
       generate_a_random_strategy(actual_state->zombie_id,
                                  actual_state->zombie_count,
                                  &pretender_strategy, &rand);
-      ++seen;
-      long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
-      if (scoring > current_scoring) {
-        current_scoring = scoring;
-        current_strategy = pretender_strategy;
-        chosen = true;
-      };
     }
   }
+  ++seen;
+  long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
+  if (scoring > current_scoring) {
+    current_scoring = scoring;
+    current_strategy = pretender_strategy;
+    chosen = true;
+  };
 
   dump_strategy(&current_strategy);
   const struct point move = apply_the_first_move(&current_strategy);
@@ -543,7 +543,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.7.3, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.7.4, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
