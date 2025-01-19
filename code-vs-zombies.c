@@ -179,6 +179,8 @@ int eaten_by_zombie_may_rescue(const struct game_state *state,
   for (int i = 0; i < state->human_count; ++i) {
     long dist_to_walk_2 = dist2(state->human[i], state->ash);
     if (dist_to_walk_2 > ash_kill_dist_2) {
+      fprintf(stderr, "Human %d abandoned, %ld > %ld\n", i, dist_to_walk_2,
+              ash_kill_dist_2);
       continue;
     }
 
@@ -543,7 +545,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.7.4, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.7.5, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
