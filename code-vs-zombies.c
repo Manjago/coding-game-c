@@ -173,27 +173,6 @@ void dump_game_state(const struct game_state *state) {
   dump_game_state_zombies(state);
 }
 
-int eaten_by_zombie_may_rescue(const struct game_state *state,
-                               long ash_kill_dist_2) {
-
-  for (int i = 0; i < state->human_count; ++i) {
-    long dist_to_walk_2 = dist2(state->human[i], state->ash);
-    if (dist_to_walk_2 > ash_kill_dist_2) {
-      fprintf(stderr, "Human %d abandoned, %ld > %ld\n", i, dist_to_walk_2,
-              ash_kill_dist_2);
-      continue;
-    }
-
-    for (int j = 0; j < state->zombie_count; ++j) {
-      if (point_equals(state->human[i], state->zombie_next[j])) {
-        return j;
-      }
-    }
-  }
-
-  return -1;
-}
-
 bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
   double elapsed_ms = elapsed(start_t, end_t);
   return elapsed_ms <= limit_ms;
@@ -510,27 +489,18 @@ void move2(const struct game_state *actual_state,
   int seen = 0;
   bool chosen = false;
 
-  int bad_zombie_index = -1;
-      //eaten_by_zombie_may_rescue(actual_state, ash_may_rescue_2);
-  if (bad_zombie_index != -1) {
-    fprintf(stderr, "eaten human %d found\n", bad_zombie_index);
-    pretender_strategy.target_zombie_id = -1;
-    pretender_strategy.random_moves_count = -1;
-    pretender_strategy.first_move = actual_state->zombie[bad_zombie_index];
-  } else {
-    while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
-      generate_a_random_strategy(actual_state->zombie_id,
-                                 actual_state->zombie_count,
-                                 &pretender_strategy, &rand);
-    }
+  while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
+    generate_a_random_strategy(actual_state->zombie_id,
+                               actual_state->zombie_count, &pretender_strategy,
+                               &rand);
+    ++seen;
+    long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
+    if (scoring > current_scoring) {
+      current_scoring = scoring;
+      current_strategy = pretender_strategy;
+      chosen = true;
+    };
   }
-  ++seen;
-  long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
-  if (scoring > current_scoring) {
-    current_scoring = scoring;
-    current_strategy = pretender_strategy;
-    chosen = true;
-  };
 
   dump_strategy(&current_strategy);
   const struct point move = apply_the_first_move(&current_strategy);
@@ -545,7 +515,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.7.6, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.8.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
