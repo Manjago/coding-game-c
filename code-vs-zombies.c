@@ -69,7 +69,8 @@ enum constraints {
   max_y_exclusive = 9000,
   max_ash_move = 1000,
   max_zombie_move = 400,
-  kill_dist_2 = 4000000
+  kill_dist_2 = 4000000,
+  ash_may_rescue_2 = 9000000
 };
 
 struct point {
@@ -172,6 +173,25 @@ void dump_game_state(const struct game_state *state) {
   dump_game_state_zombies(state);
 }
 
+int eaten_by_zombie_may_rescue(const struct game_state *state,
+                               long ash_kill_dist_2) {
+
+  for (int i = 0; i < state->human_count; ++i) {
+    long dist_to_walk_2 = dist2(state->human[i], state->ash);
+    if (dist_to_walk_2 > ash_kill_dist_2) {
+      continue;
+    }
+
+    for (int j = 0; j < state->zombie_count; ++j) {
+      if (point_equals(state->human[i], state->zombie[j])) {
+        return i;
+      }
+    }
+  }
+
+  return -1;
+}
+
 bool has_time(const clock_t start_t, const clock_t end_t, int limit_ms) {
   double elapsed_ms = elapsed(start_t, end_t);
   return elapsed_ms <= limit_ms;
@@ -181,8 +201,8 @@ struct point move_from_destination(const struct point from,
                                    const struct point to, int max_dist,
                                    const bool trace) {
   if (trace) {
-    fprintf(stderr, "from %d,%d to %d,%d, max_dist %d",
-            from.x, from.y, to.x, to.y, max_dist);
+    fprintf(stderr, "from %d,%d to %d,%d, max_dist %d", from.x, from.y, to.x,
+            to.y, max_dist);
   }
   struct point result;
   const double delta_x = to.x - from.x;
@@ -210,7 +230,8 @@ struct point move_from_destination(const struct point from,
               real_delta_y_int);
     result.x = from.x + real_delta_x_int;
     result.y = from.y + real_delta_y_int;
-    if (trace) fprintf(stderr, "actual result (%d,%d)\n", result.x, result.y);
+    if (trace)
+      fprintf(stderr, "actual result (%d,%d)\n", result.x, result.y);
     if (result.x < 0 || result.y < 0) {
       fprintf(stderr, "from %d,%d, to %d,%d, dist %d result %d,%d\n", from.x,
               from.y, to.x, to.y, max_dist, result.x, result.y);
@@ -399,21 +420,37 @@ long simulate_the_strategy(const struct game_state *initial_state,
   bool first_move_set = false;
 
   struct game_state simulated_state = *initial_state;
-  for (int i = 0; i < result->random_moves_count; ++i) {
-    // printf("random moves count: %d/%d\n", i, result->random_moves_count - 1);
-    const struct point random_dest = {rand() % max_x_exclusive,
-                                      rand() % max_y_exclusive};
+
+  if (result->random_moves_count == -1) {
+    first_move_set = true;
     const struct point actual_dest = move_from_destination(
-        simulated_state.ash, random_dest, max_ash_move, false);
-    if (!first_move_set) {
-      first_move_set = true;
-      result->first_move = actual_dest;
-      // printf("set actual move to (%d,%d)\n",
-      // result->first_move.x,result->first_move.y);
-    }
+        simulated_state.ash, result->first_move, max_ash_move, false);
     long curr_scoring = simulate_turn(&simulated_state, actual_dest,
                                       kill_dist_2, max_zombie_move);
     scoring += curr_scoring;
+  } else {
+    for (int i = 0; i < result->random_moves_count; ++i) {
+      // printf("random moves count: %d/%d\n", i, result->random_moves_count -
+      // 1);
+      const struct point random_dest = {rand() % max_x_exclusive,
+                                        rand() % max_y_exclusive};
+      const struct point actual_dest = move_from_destination(
+          simulated_state.ash, random_dest, max_ash_move, false);
+      if (!first_move_set) {
+        first_move_set = true;
+        result->first_move = actual_dest;
+        // printf("set actual move to (%d,%d)\n",
+        // result->first_move.x,result->first_move.y);
+      }
+      long curr_scoring = simulate_turn(&simulated_state, actual_dest,
+                                        kill_dist_2, max_zombie_move);
+      scoring += curr_scoring;
+    }
+  }
+
+  if (result->target_zombie_id == -1) {
+    assert(first_move_set);
+    return scoring;
   }
 
   int target_zombie_index;
@@ -470,17 +507,25 @@ void move2(const struct game_state *actual_state,
   int seen = 0;
   bool chosen = false;
 
-  while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
-    generate_a_random_strategy(actual_state->zombie_id,
-                               actual_state->zombie_count, &pretender_strategy,
-                               &rand);
-    ++seen;
-    long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
-    if (scoring > current_scoring) {
-      current_scoring = scoring;
-      current_strategy = pretender_strategy;
-      chosen = true;
-    };
+  int eaten_human_index =
+      eaten_by_zombie_may_rescue(actual_state, ash_may_rescue_2);
+  if (eaten_human_index != -1) {
+    pretender_strategy.target_zombie_id = -1;
+    pretender_strategy.random_moves_count = -1;
+    pretender_strategy.first_move = actual_state->human[eaten_human_index];
+  } else {
+    while (has_time(start_t, clock(), response_time_ms) && seen < limit) {
+      generate_a_random_strategy(actual_state->zombie_id,
+                                 actual_state->zombie_count,
+                                 &pretender_strategy, &rand);
+      ++seen;
+      long scoring = simulate_the_strategy(actual_state, &pretender_strategy);
+      if (scoring > current_scoring) {
+        current_scoring = scoring;
+        current_strategy = pretender_strategy;
+        chosen = true;
+      };
+    }
   }
 
   dump_strategy(&current_strategy);
@@ -496,7 +541,7 @@ void move2(const struct game_state *actual_state,
 
 void game_loop() {
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver = 1.5.0, seed = %u\n", seed);
+  fprintf(stderr, "ver = 1.7.0, seed = %u\n", seed);
   srand(seed);
 
   struct game_state game_state;
@@ -772,7 +817,6 @@ void test_move_from_destination() {
     const struct point expected = {2737, 6831};
     assert(point_equals(expected, actual));
   }
-
 }
 
 int custom_rand() {
