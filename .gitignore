@@ -4,3 +4,5 @@ code-vs-zombies
 build
 fibo.c
 fibo
+out
+*.py
