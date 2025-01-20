@@ -9,9 +9,14 @@ _ # _ _
 0 1 2 3
 
 1 right
+3 left
 
 
 A - right
+B - wait?
+C - wait?
+D - wait?
+E - left
 */
 
 enum constraints {
@@ -85,7 +90,8 @@ int main() {
           players_count);
 
   // game loop
-  while (1) {
+  int turn_num = 0;
+  while (++turn_num) {
     char first_input[2];
     scanf("%[^\n]", first_input);
     fgetc(stdin);
@@ -117,7 +123,14 @@ int main() {
 
     // printf("A, B, C, D or E\n");
     dump_grid(players_count, width, height);
-    printf("B\n");
+    char move;
+    if (turn_num == 0) {
+      move = 'E';
+    } else {
+      move = 'A';
+    }
+    fprintf(stderr, "turn %d, move %c\n", turn_num, move);
+    printf("%c\n", move);
   }
 
   return 0;
