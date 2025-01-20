@@ -4,6 +4,8 @@
 #include <sys/resource.h>
 
 enum constraints {
+  max_width = 35,
+  max_height = 35,
   max_players = 10
  };
 
@@ -12,6 +14,7 @@ struct point {
 };
 
 struct point players[max_players];
+int seen[max_height][max_width] = {0};
 
 /*
 width, height
@@ -37,11 +40,12 @@ void dump_grid(int players_count, int width, int height) {
       const int player_index = index_of_player(players_count, j, i);
       if (player_index + 1) {
         fprintf(stderr, "%d", player_index);
-      } else {
+      } else if (seen[i][j]) {
         fprintf(stderr, "%c", '.');
-      }
+      } else {
+        fprintf(stderr, "%c", '?');
+      }      
     }
-    fprintf(stderr, "\n");
   }
 }
 
@@ -55,14 +59,16 @@ int main() {
 
   int width;
   scanf("%d", &width);
+  assert(width > 0 && width <= max_width);
   int height;
   scanf("%d", &height);
+  assert(height > 0 && height <= max_height);
   int players_count;
-  assert(players_count >= 0 && players_count <= 10);
+  assert(players_count > 0 && players_count <= max_players);
   scanf("%d", &players_count);
   fgetc(stdin);
 
-  fprintf(stderr, "ver 1.2.0\n");
+  fprintf(stderr, "ver 1.3.0\n");
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
           players_count);
 
@@ -91,6 +97,7 @@ int main() {
       fprintf(stderr, "%d: %d %d\n", i, x, y);
       const struct point pos = {x, y};
       players[i] = pos;
+      seen[y][x] = 1;
     }
 
     // Write an action using printf(). DON'T FORGET THE TRAILING \n
