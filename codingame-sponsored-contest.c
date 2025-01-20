@@ -37,6 +37,26 @@ enum move_type {
   move_left = 'E'
 };
 
+void decode_move(const enum move_type mt) {
+  switch (mt) {
+  case move_right:
+    fprintf(stderr, "RIGHT");
+    break;
+  case move_wait:
+    fprintf(stderr, "WAIT");
+    break;
+  case move_up:
+    fprintf(stderr, "UP");
+    break;
+  case move_down:
+    fprintf(stderr, "DOWN");
+    break;
+  case move_left:
+    fprintf(stderr, "LEFT");
+    break;
+  }
+}
+
 enum cell_type { unknown = 0, free_cell = 1, wall = 2 };
 
 struct point {
@@ -178,7 +198,7 @@ int main() {
   fgetc(stdin);
 
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver 1.4.0, seed = %u\n", seed);
+  fprintf(stderr, "ver 1.4.1, seed = %u\n", seed);
   srand(seed);
 
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
@@ -241,7 +261,9 @@ int main() {
     dump_grid(players_count);
     const struct point me = players[players_count - 1];
     const char move = move0(me.x, me.y);
-    fprintf(stderr, "turn %d, move %c\n", turn_num, move);
+    fprintf(stderr, "turn %d, move ", turn_num);
+    decode_move(move);
+    fprintf(stderr, "\n");
     printf("%c\n", move);
   }
 
