@@ -64,7 +64,7 @@ struct point {
 };
 
 struct point players[max_players];
-enum cell_type seen[max_height][max_width] = {0};
+enum cell_type grid[max_height][max_width] = {0};
 
 /*
 width, height
@@ -91,7 +91,7 @@ void dump_grid(int players_count) {
       if (player_index + 1) {
         fprintf(stderr, "%d", player_index);
       } else {
-        switch (seen[i][j]) {
+        switch (grid[i][j]) {
         case unknown:
           fprintf(stderr, "%c", '?');
           break;
@@ -145,12 +145,12 @@ int right_index(int i) {
   return new_value;
 }
 
-enum cell_type up(int x, int y) { return seen[up_index(y)][x]; }
+enum cell_type up(int x, int y) { return grid[up_index(y)][x]; }
 
-enum cell_type down(int x, int y) { return seen[down_index(y)][x]; }
+enum cell_type down(int x, int y) { return grid[down_index(y)][x]; }
 
-enum cell_type left(int x, int y) { return seen[y][left_index(x)]; }
-enum cell_type right(int x, int y) { return seen[y][right_index(x)]; }
+enum cell_type left(int x, int y) { return grid[y][left_index(x)]; }
+enum cell_type right(int x, int y) { return grid[y][right_index(x)]; }
 
 enum move_type move0(int x, int y) {
   enum move_type moves[4];
@@ -245,12 +245,12 @@ int main() {
       fprintf(stderr, "%d: %d %d -> %d %d\n", i, x, y, x_mod, y_mod);
       const struct point pos = {x_mod, y_mod};
       players[i] = pos;
-      seen[y_mod][x_mod] = free_cell;
+      grid[y_mod][x_mod] = free_cell;
       if (i == players_count - 1) {
-        seen[up_index(y_mod)][x_mod] = from_char(up_status[0]);
-        seen[down_index(y_mod)][x_mod] = from_char(down_status[0]);
-        seen[y_mod][right_index(x_mod)] = from_char(right_status[0]);
-        seen[y_mod][left_index(x_mod)] = from_char(left_status[0]);
+        grid[up_index(y_mod)][x_mod] = from_char(up_status[0]);
+        grid[down_index(y_mod)][x_mod] = from_char(down_status[0]);
+        grid[y_mod][right_index(x_mod)] = from_char(right_status[0]);
+        grid[y_mod][left_index(x_mod)] = from_char(left_status[0]);
       }
     }
 
