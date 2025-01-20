@@ -1,8 +1,11 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/resource.h>
 
-enum constraints { max_players = 10 };
+enum constraints {
+  max_players = 10
+ };
 
 struct point {
   int x, y;
@@ -43,6 +46,13 @@ void dump_grid(int players_count, int width, int height) {
 }
 
 int main() {
+  struct rlimit rl;
+  if (getrlimit(RLIMIT_STACK, &rl) == 0) {
+    fprintf(stderr, "Stack size: %ld bytes\n", rl.rlim_cur);
+  } else {
+    perror("getrlimit");
+  }
+
   int width;
   scanf("%d", &width);
   int height;
