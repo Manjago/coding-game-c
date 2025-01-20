@@ -135,7 +135,7 @@ int main() {
   assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
-  fprintf(stderr, "ver 1.3.3\n");
+  fprintf(stderr, "ver 1.3.4\n");
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
           players_count);
 
@@ -175,8 +175,10 @@ int main() {
       int y;
       scanf("%d%d", &x, &y);
       fgetc(stdin);
-      fprintf(stderr, "%d: %d %d\n", i, x, y);
-      const struct point pos = {x, y};
+      const int x_mod = x % width;
+      const int y_mod = y % height;
+      fprintf(stderr, "%d: %d %d -> %d %d\n", i, x, y, x_mod, y_mod);
+      const struct point pos = {x_mod, y_mod};
       players[i] = pos;
       seen[y][x] = free_cell;
       if (i == players_count - 1) {
