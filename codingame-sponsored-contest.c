@@ -64,11 +64,11 @@ int main() {
   scanf("%d", &height);
   assert(height > 0 && height <= max_height);
   int players_count;
-  assert(players_count > 0 && players_count <= max_players);
   scanf("%d", &players_count);
+  assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
-  fprintf(stderr, "ver 1.3.0\n");
+  fprintf(stderr, "ver 1.3.1\n");
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
           players_count);
 
