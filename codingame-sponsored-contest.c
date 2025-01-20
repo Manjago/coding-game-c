@@ -29,6 +29,8 @@ enum constraints { max_width = 35, max_height = 35, max_players = 10 };
 int width;
 int height;
 
+#define MAX_Q_SIZE max_height *max_width
+
 enum move_type {
   move_right = 'A',
   move_wait = 'B',
@@ -62,6 +64,47 @@ enum cell_type { unknown = 0, free_cell = 1, wall = 2 };
 struct point {
   int x, y;
 };
+
+const struct point undefined_point = {-1, -1};
+
+struct queue_item {
+  struct point point;
+  struct point first_move;
+};
+
+struct queue {
+  struct queue_item queue[MAX_Q_SIZE];
+  int front;
+  int back;
+};
+
+void queue_init(struct queue *q) {
+  q->front = -1;
+  q->back = -1;
+}
+
+bool queue_is_empty(const struct queue *q) { return (q->front == -1); }
+
+void queue_push(struct queue *q, struct queue_item data) {
+  assert(q->back < (MAX_Q_SIZE - 1));
+  if (queue_is_empty(q)) {
+    q->front = 0;
+  }
+  q->back++;
+  q->queue[q->back] = data;
+}
+
+struct queue_item queue_pop(struct queue *q) {
+  assert(!queue_is_empty(q));
+  struct queue_item data = q->queue[q->front];
+  if (q->front == q->back) {
+    q->front = -1;
+    q->back = -1;
+  } else {
+    q->front++;
+  }
+  return data;
+}
 
 struct point players[max_players];
 enum cell_type grid[max_height][max_width] = {0};
@@ -145,6 +188,34 @@ int right_index(int i) {
   return new_value;
 }
 
+bool point_equals(struct point a, struct point b) {
+  return a.x == b.x && a.y == b.y;
+}
+
+struct point point_up(struct point point) {
+  struct point result = point;
+  result.y = up_index(result.y - 1);
+  return result;
+}
+
+struct point point_down(struct point point) {
+  struct point result = point;
+  result.y = down_index(result.y + 1);
+  return result;
+}
+
+struct point point_left(struct point point) {
+  struct point result = point;
+  result.x = left_index(result.x - 1);
+  return result;
+}
+
+struct point point_right(struct point point) {
+  struct point result = point;
+  result.x = right_index(result.x + 1);
+  return result;
+}
+
 enum cell_type up(int x, int y) { return grid[up_index(y)][x]; }
 
 enum cell_type down(int x, int y) { return grid[down_index(y)][x]; }
@@ -178,6 +249,57 @@ enum move_type move0(int x, int y) {
     const int selected_index = rand() % index;
     return moves[selected_index];
   }
+}
+
+struct queue_item create(const struct point pretender, const struct queue_item prev) {
+  struct queue_item result;
+  result.point = pretender;
+  if (point_equals(undefined_point, prev.first_move)) {
+    result.first_move = pretender;
+  } else {
+    result.first_move = prev.first_move;
+  }
+  return result;
+}
+
+struct point bfs(struct point start) {
+  int seen[max_height][max_width] = {0};
+  struct queue queue;
+  queue_init(&queue);
+  struct queue_item start_queue_item = {start, undefined_point};
+  queue_push(&queue, start_queue_item);
+  while (!queue_is_empty(&queue)) {
+    struct queue_item current = queue_pop(&queue);
+    if (seen[current.point.y][current.point.x]) {
+      continue;
+    }
+    seen[current.point.y][current.point.x] = 1;
+
+    if (grid[current.point.y][current.point.x] == unknown) {
+      return current.first_move;
+    }
+
+    struct point pretender;
+
+    pretender = point_up(current.point);
+    if (grid[pretender.y][pretender.x] != wall) {
+      queue_push(&queue, create(pretender, current));
+    }
+    pretender = point_down(current.point);
+    if (grid[pretender.y][pretender.x] != wall) {
+      queue_push(&queue, create(pretender, current));
+    }
+    pretender = point_left(current.point);
+    if (grid[pretender.y][pretender.x] != wall) {
+      queue_push(&queue, create(pretender, current));
+    }
+    pretender = point_right(current.point);
+    if (grid[pretender.y][pretender.x] != wall) {
+      queue_push(&queue, create(pretender, current));
+    }
+  }
+
+  return undefined_point;
 }
 
 int main() {
