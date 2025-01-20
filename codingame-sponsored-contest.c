@@ -198,7 +198,7 @@ int main() {
   fgetc(stdin);
 
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver 1.4.1, seed = %u\n", seed);
+  fprintf(stderr, "ver 1.4.2, seed = %u\n", seed);
   srand(seed);
 
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
@@ -245,12 +245,12 @@ int main() {
       fprintf(stderr, "%d: %d %d -> %d %d\n", i, x, y, x_mod, y_mod);
       const struct point pos = {x_mod, y_mod};
       players[i] = pos;
-      seen[y][x] = free_cell;
+      seen[y_mod][x_mod] = free_cell;
       if (i == players_count - 1) {
-        seen[up_index(y)][x] = from_char(up_status[0]);
-        seen[down_index(y)][x] = from_char(down_status[0]);
-        seen[y][right_index(x)] = from_char(right_status[0]);
-        seen[y][left_index(x)] = from_char(left_status[0]);
+        seen[up_index(y_mod)][x_mod] = from_char(up_status[0]);
+        seen[down_index(y_mod)][x_mod] = from_char(down_status[0]);
+        seen[y_mod][right_index(x_mod)] = from_char(right_status[0]);
+        seen[y_mod][left_index(x_mod)] = from_char(left_status[0]);
       }
     }
 
