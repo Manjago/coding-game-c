@@ -22,10 +22,12 @@ D - down
 E - left
 */
 
-enum constraints {
-  max_width = 35,
-  max_height = 35,
-  max_players = 10
+enum constraints { max_width = 35, max_height = 35, max_players = 10 };
+
+enum maze_type {
+  unknown = 0,
+  free_cell = 1,
+  wall = 2
  };
 
 struct point {
@@ -33,7 +35,7 @@ struct point {
 };
 
 struct point players[max_players];
-int seen[max_height][max_width] = {0};
+enum maze_type seen[max_height][max_width] = {0};
 
 /*
 width, height
@@ -59,14 +61,59 @@ void dump_grid(int players_count, int width, int height) {
       const int player_index = index_of_player(players_count, j, i);
       if (player_index + 1) {
         fprintf(stderr, "%d", player_index);
-      } else if (seen[i][j]) {
-        fprintf(stderr, "%c", '.');
       } else {
-        fprintf(stderr, "%c", '?');
+        switch (seen[i][j]) {
+        case unknown:
+          fprintf(stderr, "%c", '?');
+          break;
+        case free_cell:
+          fprintf(stderr, "%c", '.');
+          break;
+        case wall:
+          fprintf(stderr, "%c", '#');
+          break;
+        }
       }
     }
     fprintf(stderr, "\n");
   }
+}
+
+enum maze_type from_char(const char raw_status) {
+  assert(raw_status == '#' || raw_status == '_');
+  return (raw_status == '#') ? wall : free_cell;
+}
+
+int up_index(int height, int j) {
+  int new_value = j - 1;
+  if (new_value < 0) {
+    new_value += height;
+  }
+  return new_value;
+}
+
+int down_index(int height, int j) {
+  int new_value = j + 1;
+  if (new_value >= height) {
+    new_value -= height;
+  }
+  return new_value;
+}
+
+int left_index(int width, int i) {
+  int new_value = i - 1;
+  if (new_value < 0) {
+    new_value += width;
+  }
+  return new_value;
+}
+
+int right_index(int width, int i) {
+  int new_value = i + 1;
+  if (new_value >= width) {
+    new_value -= width;
+  }
+  return new_value;
 }
 
 int main() {
@@ -88,27 +135,40 @@ int main() {
   assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
-  fprintf(stderr, "ver 1.3.2\n");
+  fprintf(stderr, "ver 1.3.3\n");
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
           players_count);
 
   // game loop
   int turn_num = 0;
   while (++turn_num) {
-    char first_input[2];
-    scanf("%[^\n]", first_input);
-    fgetc(stdin);
-    char second_input[2];
-    scanf("%[^\n]", second_input);
-    fgetc(stdin);
-    char third_input[2];
-    scanf("%[^\n]", third_input);
-    fgetc(stdin);
-    char fourth_input[2];
-    scanf("%[^\n]", fourth_input);
 
-    fprintf(stderr, "%c %c %c %c\n", first_input[0], second_input[0],
-            third_input[0], fourth_input[0]);
+    /*
+    _ # _ _
+    0 1 2 3
+    u r d l
+
+    0 up
+    1 right
+    2 down
+    3 left
+
+     */
+
+    char up_status[2];
+    scanf("%[^\n]", up_status);
+    fgetc(stdin);
+    char right_status[2];
+    scanf("%[^\n]", right_status);
+    fgetc(stdin);
+    char down_status[2];
+    scanf("%[^\n]", down_status);
+    fgetc(stdin);
+    char left_status[2];
+    scanf("%[^\n]", left_status);
+
+    fprintf(stderr, "u %c r %c d %c l %c\n", up_status[0], right_status[0],
+            down_status[0], left_status[0]);
 
     for (int i = 0; i < players_count; i++) {
       int x;
@@ -118,7 +178,13 @@ int main() {
       fprintf(stderr, "%d: %d %d\n", i, x, y);
       const struct point pos = {x, y};
       players[i] = pos;
-      seen[y][x] = 1;
+      seen[y][x] = free_cell;
+      if (i == players_count - 1) {
+         seen[up_index(height, y)][x] = from_char(up_status[0]);
+         seen[down_index(height, y)][x] = from_char(down_status[0]);
+         seen[y][right_index(width, x)] = from_char(right_status[0]);
+         seen[y][left_index(width, x)] = from_char(left_status[0]);
+      }
     }
 
     // Write an action using printf(). DON'T FORGET THE TRAILING \n
