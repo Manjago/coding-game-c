@@ -7,15 +7,18 @@
 
 _ # _ _
 0 1 2 3
+u r d l
 
+0 up
 1 right
+2 down
 3 left
 
 
 A - right
-B - wait?
-C - wait?
-D - wait?
+B - wait
+C - up
+D - down
 E - left
 */
 
@@ -126,6 +129,10 @@ int main() {
     char move;
     if (turn_num == 0) {
       move = 'E';
+    } else if (turn_num == 4) {
+      move = 'D';
+    } else if (turn_num >= 3) {
+      move = 'C';
     } else {
       move = 'A';
     }
