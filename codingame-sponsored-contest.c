@@ -3,6 +3,17 @@
 #include <stdio.h>
 #include <sys/resource.h>
 
+/*
+
+_ # _ _
+0 1 2 3
+
+1 right
+
+
+A - right
+*/
+
 enum constraints {
   max_width = 35,
   max_height = 35,
@@ -44,8 +55,9 @@ void dump_grid(int players_count, int width, int height) {
         fprintf(stderr, "%c", '.');
       } else {
         fprintf(stderr, "%c", '?');
-      }      
+      }
     }
+    fprintf(stderr, "\n");
   }
 }
 
@@ -68,7 +80,7 @@ int main() {
   assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
-  fprintf(stderr, "ver 1.3.1\n");
+  fprintf(stderr, "ver 1.3.2\n");
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
           players_count);
 
@@ -105,7 +117,7 @@ int main() {
 
     // printf("A, B, C, D or E\n");
     dump_grid(players_count, width, height);
-    printf("A\n");
+    printf("B\n");
   }
 
   return 0;
