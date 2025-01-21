@@ -28,6 +28,7 @@ enum constraints { max_width = 35, max_height = 35, max_players = 10 };
 
 int width;
 int height;
+int players_count;
 
 #define MAX_Q_SIZE max_height *max_width
 
@@ -290,40 +291,114 @@ enum move_type from_points_to_move(const struct point from,
   abort();
 }
 
-enum move_type move1(const struct point me) {
-  const struct point target_point = bfs(me);
-  const enum move_type suggested_move = from_points_to_move(me, target_point);
-  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x,
-          target_point.y);
-  return suggested_move;
+bool is_will_be_killed(const struct point point) {
+  for (int i = 0; i < players_count - 1; ++i) {
+    if (point_equals(point_up(point), players[i]) ||
+        point_equals(point_down(point), players[i]) ||
+        point_equals(point_left(point), players[i]) ||
+        point_equals(point_right(point), players[i])) {
+      return true;
+    }
+  }
+  return false;
 }
 
-enum move_type move0(int x, int y) {
-  enum move_type moves[4];
-  int index = 0;
+bool is_enemy_at(const struct point point) {
+  for (int i = 0; i < players_count - 1; ++i) {
+    if (point_equals(point, players[i])) {
+      return true;
+    }
+  }
+  return false;
+}
 
-  if (up(x, y) != wall) {
-    moves[index++] = move_up;
+enum move_type do_move(const struct point me) {
+  const struct point target_point = bfs(me);
+  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x,
+          target_point.y);
+
+  if (!is_will_be_killed(target_point)) {
+    const enum move_type suggested_move = from_points_to_move(me, target_point);
+    return suggested_move;
   }
 
-  if (down(x, y) != wall) {
-    moves[index++] = move_down;
+  fprintf(stderr, "enemy wanna kill me at %d,%d\n", target_point.x,
+          target_point.y);
+
+  struct point just_escape;
+
+  just_escape = point_up(me);
+  if ((grid[just_escape.y][just_escape.x] == free_cell) &&
+      !is_will_be_killed(just_escape)) {
+    const enum move_type suggested_move = from_points_to_move(me, just_escape);
+    fprintf(stderr, "escape from %d,%d to %d,%d\n", me.x, me.y, just_escape.x,
+            just_escape.y);
+    return suggested_move;
   }
 
-  if (left(x, y) != wall) {
-    moves[index++] = move_left;
+  just_escape = point_down(me);
+  if ((grid[just_escape.y][just_escape.x] == free_cell) &&
+      !is_will_be_killed(just_escape)) {
+    const enum move_type suggested_move = from_points_to_move(me, just_escape);
+    fprintf(stderr, "escape from %d,%d to %d,%d\n", me.x, me.y, just_escape.x,
+            just_escape.y);
+    return suggested_move;
   }
 
-  if (right(x, y) != wall) {
-    moves[index++] = move_right;
+  just_escape = point_left(me);
+  if ((grid[just_escape.y][just_escape.x] == free_cell) &&
+      !is_will_be_killed(just_escape)) {
+    const enum move_type suggested_move = from_points_to_move(me, just_escape);
+    fprintf(stderr, "escape from %d,%d to %d,%d\n", me.x, me.y, just_escape.x,
+            just_escape.y);
+    return suggested_move;
   }
 
-  if (index == 0) {
-    return move_wait;
-  } else {
-    const int selected_index = rand() % index;
-    return moves[selected_index];
+  just_escape = point_right(me);
+  if ((grid[just_escape.y][just_escape.x] == free_cell) &&
+      !is_will_be_killed(just_escape)) {
+    const enum move_type suggested_move = from_points_to_move(me, just_escape);
+    fprintf(stderr, "escape from %d,%d to %d,%d\n", me.x, me.y, just_escape.x,
+            just_escape.y);
+    return suggested_move;
   }
+
+  struct point try_kill;
+
+  try_kill = point_up(me);
+  if (is_enemy_at(try_kill)) {
+    const enum move_type suggested_move = from_points_to_move(me, try_kill);
+    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
+            try_kill.y);
+    return suggested_move;
+  }
+
+  try_kill = point_down(me);
+  if (is_enemy_at(try_kill)) {
+    const enum move_type suggested_move = from_points_to_move(me, try_kill);
+    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
+            try_kill.y);
+    return suggested_move;
+  }
+
+  try_kill = point_left(me);
+  if (is_enemy_at(try_kill)) {
+    const enum move_type suggested_move = from_points_to_move(me, try_kill);
+    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
+            try_kill.y);
+    return suggested_move;
+  }
+
+  try_kill = point_right(me);
+  if (is_enemy_at(try_kill)) {
+    const enum move_type suggested_move = from_points_to_move(me, try_kill);
+    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
+            try_kill.y);
+    return suggested_move;
+  }
+
+  fprintf(stderr, "just wait\n");
+  return move_wait;
 }
 
 int main() {
@@ -338,13 +413,12 @@ int main() {
   assert(width > 0 && width <= max_width);
   scanf("%d", &height);
   assert(height > 0 && height <= max_height);
-  int players_count;
   scanf("%d", &players_count);
   assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver 1.5.2, seed = %u\n", seed);
+  fprintf(stderr, "ver 1.6.0, seed = %u\n", seed);
   srand(seed);
 
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
@@ -406,7 +480,7 @@ int main() {
     // printf("A, B, C, D or E\n");
     dump_grid(players_count);
     const struct point me = players[players_count - 1];
-    const char move = move1(me);
+    const char move = do_move(me);
     fprintf(stderr, "turn %d, move ", turn_num);
     decode_move(move);
     fprintf(stderr, "\n");
