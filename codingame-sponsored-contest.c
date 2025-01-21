@@ -194,25 +194,25 @@ bool point_equals(const struct point a, const struct point b) {
 
 struct point point_up(const struct point point) {
   struct point result = point;
-  result.y = up_index(result.y - 1);
+  result.y = up_index(result.y);
   return result;
 }
 
 struct point point_down(const struct point point) {
   struct point result = point;
-  result.y = down_index(result.y + 1);
+  result.y = down_index(result.y);
   return result;
 }
 
 struct point point_left(const struct point point) {
   struct point result = point;
-  result.x = left_index(result.x - 1);
+  result.x = left_index(result.x);
   return result;
 }
 
 struct point point_right(const struct point point) {
   struct point result = point;
-  result.x = right_index(result.x + 1);
+  result.x = right_index(result.x);
   return result;
 }
 
@@ -225,6 +225,7 @@ enum cell_type right(int x, int y) { return grid[y][right_index(x)]; }
 
 struct queue_item create(const struct point pretender,
                          const struct queue_item prev) {
+
   struct queue_item result;
   result.point = pretender;
   if (point_equals(undefined_point, prev.first_move)) {
@@ -292,7 +293,8 @@ enum move_type from_points_to_move(const struct point from,
 enum move_type move1(const struct point me) {
   const struct point target_point = bfs(me);
   const enum move_type suggested_move = from_points_to_move(me, target_point);
-  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x, target_point.y);
+  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x,
+          target_point.y);
   return suggested_move;
 }
 
@@ -342,7 +344,7 @@ int main() {
   fgetc(stdin);
 
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver 1.5.0, seed = %u\n", seed);
+  fprintf(stderr, "ver 1.5.2, seed = %u\n", seed);
   srand(seed);
 
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
