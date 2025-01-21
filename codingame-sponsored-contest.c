@@ -291,18 +291,6 @@ enum move_type from_points_to_move(const struct point from,
   abort();
 }
 
-bool is_will_be_killed(const struct point point) {
-  for (int i = 0; i < players_count - 1; ++i) {
-    if (point_equals(point_up(point), players[i]) ||
-        point_equals(point_down(point), players[i]) ||
-        point_equals(point_left(point), players[i]) ||
-        point_equals(point_right(point), players[i])) {
-      return true;
-    }
-  }
-  return false;
-}
-
 bool is_enemy_at(const struct point point) {
   for (int i = 0; i < players_count - 1; ++i) {
     if (point_equals(point, players[i])) {
@@ -311,6 +299,38 @@ bool is_enemy_at(const struct point point) {
   }
   return false;
 }
+
+bool is_will_be_killed(const struct point point) {
+
+  struct point check;
+
+  check = point_up(point);
+  if (is_enemy_at(check)) {
+    return true;
+  }
+  fprintf(stderr, "no enemy at %d,%d\n", check.x, check.y);
+
+  check = point_down(point);
+  if (is_enemy_at(check)) {
+    return true;
+  }
+  fprintf(stderr, "no enemy at %d,%d\n", check.x, check.y);
+
+  check = point_left(point);
+  if (is_enemy_at(check)) {
+    return true;
+  }
+  fprintf(stderr, "no enemy at %d,%d\n", check.x, check.y);
+
+  check = point_right(point);
+  if (is_enemy_at(check)) {
+    return true;
+  }
+  fprintf(stderr, "no enemy at %d,%d\n", check.x, check.y);
+
+  return false;
+}
+
 
 enum move_type do_move(const struct point me) {
   const struct point target_point = bfs(me);
