@@ -188,29 +188,29 @@ int right_index(int i) {
   return new_value;
 }
 
-bool point_equals(struct point a, struct point b) {
+bool point_equals(const struct point a, const struct point b) {
   return a.x == b.x && a.y == b.y;
 }
 
-struct point point_up(struct point point) {
+struct point point_up(const struct point point) {
   struct point result = point;
   result.y = up_index(result.y - 1);
   return result;
 }
 
-struct point point_down(struct point point) {
+struct point point_down(const struct point point) {
   struct point result = point;
   result.y = down_index(result.y + 1);
   return result;
 }
 
-struct point point_left(struct point point) {
+struct point point_left(const struct point point) {
   struct point result = point;
   result.x = left_index(result.x - 1);
   return result;
 }
 
-struct point point_right(struct point point) {
+struct point point_right(const struct point point) {
   struct point result = point;
   result.x = right_index(result.x + 1);
   return result;
@@ -223,35 +223,8 @@ enum cell_type down(int x, int y) { return grid[down_index(y)][x]; }
 enum cell_type left(int x, int y) { return grid[y][left_index(x)]; }
 enum cell_type right(int x, int y) { return grid[y][right_index(x)]; }
 
-enum move_type move0(int x, int y) {
-  enum move_type moves[4];
-  int index = 0;
-
-  if (up(x, y) != wall) {
-    moves[index++] = move_up;
-  }
-
-  if (down(x, y) != wall) {
-    moves[index++] = move_down;
-  }
-
-  if (left(x, y) != wall) {
-    moves[index++] = move_left;
-  }
-
-  if (right(x, y) != wall) {
-    moves[index++] = move_right;
-  }
-
-  if (index == 0) {
-    return move_wait;
-  } else {
-    const int selected_index = rand() % index;
-    return moves[selected_index];
-  }
-}
-
-struct queue_item create(const struct point pretender, const struct queue_item prev) {
+struct queue_item create(const struct point pretender,
+                         const struct queue_item prev) {
   struct queue_item result;
   result.point = pretender;
   if (point_equals(undefined_point, prev.first_move)) {
@@ -302,6 +275,55 @@ struct point bfs(struct point start) {
   return undefined_point;
 }
 
+enum move_type from_points_to_move(const struct point from,
+                                   const struct point to) {
+  if (point_equals(point_left(from), to)) {
+    return move_left;
+  } else if (point_equals(point_right(from), to)) {
+    return move_right;
+  } else if (point_equals(point_up(from), to)) {
+    return move_up;
+  } else if (point_equals(point_down(from), to)) {
+    return move_down;
+  }
+  abort();
+}
+
+enum move_type move1(const struct point me) {
+  const struct point target_point = bfs(me);
+  const enum move_type suggested_move = from_points_to_move(me, target_point);
+  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x, target_point.y);
+  return suggested_move;
+}
+
+enum move_type move0(int x, int y) {
+  enum move_type moves[4];
+  int index = 0;
+
+  if (up(x, y) != wall) {
+    moves[index++] = move_up;
+  }
+
+  if (down(x, y) != wall) {
+    moves[index++] = move_down;
+  }
+
+  if (left(x, y) != wall) {
+    moves[index++] = move_left;
+  }
+
+  if (right(x, y) != wall) {
+    moves[index++] = move_right;
+  }
+
+  if (index == 0) {
+    return move_wait;
+  } else {
+    const int selected_index = rand() % index;
+    return moves[selected_index];
+  }
+}
+
 int main() {
   struct rlimit rl;
   if (getrlimit(RLIMIT_STACK, &rl) == 0) {
@@ -320,7 +342,7 @@ int main() {
   fgetc(stdin);
 
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver 1.4.2, seed = %u\n", seed);
+  fprintf(stderr, "ver 1.5.0, seed = %u\n", seed);
   srand(seed);
 
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
@@ -382,7 +404,7 @@ int main() {
     // printf("A, B, C, D or E\n");
     dump_grid(players_count);
     const struct point me = players[players_count - 1];
-    const char move = move0(me.x, me.y);
+    const char move = move1(me);
     fprintf(stderr, "turn %d, move ", turn_num);
     decode_move(move);
     fprintf(stderr, "\n");
