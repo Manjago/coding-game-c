@@ -470,40 +470,6 @@ enum move_type do_move(const struct point me) {
     return suggested_move;
   }
 
-  struct point try_kill;
-
-  try_kill = point_up(me);
-  if (is_enemy_at(try_kill)) {
-    const enum move_type suggested_move = from_points_to_move(me, try_kill);
-    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
-            try_kill.y);
-    return suggested_move;
-  }
-
-  try_kill = point_down(me);
-  if (is_enemy_at(try_kill)) {
-    const enum move_type suggested_move = from_points_to_move(me, try_kill);
-    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
-            try_kill.y);
-    return suggested_move;
-  }
-
-  try_kill = point_left(me);
-  if (is_enemy_at(try_kill)) {
-    const enum move_type suggested_move = from_points_to_move(me, try_kill);
-    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
-            try_kill.y);
-    return suggested_move;
-  }
-
-  try_kill = point_right(me);
-  if (is_enemy_at(try_kill)) {
-    const enum move_type suggested_move = from_points_to_move(me, try_kill);
-    fprintf(stderr, "try kill from %d,%d to %d,%d\n", me.x, me.y, try_kill.x,
-            try_kill.y);
-    return suggested_move;
-  }
-
   fprintf(stderr, "just wait\n");
   return move_wait;
 }
