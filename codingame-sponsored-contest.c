@@ -6,38 +6,6 @@
 
 /*
 
-// todo
-
-u _ r # d # l _
-0: 3 20 -> 3 1
-1: 5 1 -> 5 1
-2: 17 8 -> 17 8
-3: 7 22 -> 7 3
-4: 3 22 -> 3 3
-#...#???.......??.??????
-#.#0#1??..........??????
-#.#.#.??.?????.??.??????
-#..4#.?3..........??????
-#..#..??.?.???....??????
-#.#.#.??.?.....??.??????
-#.#.#.??.?????.??.??????
-#.#.#.??.......??.??????
-#...#?????????.??2??????
-#.#.#....?.....?????????
-#...#.??.?.???.?????????
-#.#.#.??.?..??.?????????
-#.#.#.??.?????.?????????
-#...#.??.......?????????
-#.#.#.???????.??????????
-#...#.???????.??????????
-#.#.#.....???.....??????
-#.#.#????.???.???.??????
-#.#.#????.???.???.??????
-from 3,3 bfs suggest -1,-1
-
-обработай случай, когда враг закупорил и некуда децца (ну тогда побег от врага
-или ждать)
-
 _ # _ _
 0 1 2 3
 u r d l
@@ -284,6 +252,8 @@ struct point bfs(struct point start) {
     seen[current.point.y][current.point.x] = 1;
 
     if (is_will_be_killed(current.point, true)) {
+      fprintf(stderr, "bfs enemy wanna kill me at %d,%d\n", current.point.x,
+              current.point.y);
       continue;
     }
 
@@ -377,19 +347,7 @@ bool is_will_be_killed(const struct point point, bool external) {
   return false;
 }
 
-enum move_type do_move(const struct point me) {
-  const struct point target_point = bfs(me);
-  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x,
-          target_point.y);
-
-  if (!is_will_be_killed(target_point, true)) {
-    const enum move_type suggested_move = from_points_to_move(me, target_point);
-    return suggested_move;
-  }
-
-  fprintf(stderr, "enemy wanna kill me at %d,%d\n", target_point.x,
-          target_point.y);
-
+enum move_type alter_move(const struct point me) {
   struct point just_escape;
 
   just_escape = point_up(me);
@@ -432,6 +390,24 @@ enum move_type do_move(const struct point me) {
   return move_wait;
 }
 
+enum move_type do_move(const struct point me) {
+  const struct point target_point = bfs(me);
+  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", me.x, me.y, target_point.x,
+          target_point.y);
+
+  if (point_equals(undefined_point, target_point)) {
+    fprintf(stderr, "bfs not found any path\n");
+    return alter_move(me);
+  } else if (is_will_be_killed(target_point, true)) {
+    fprintf(stderr, "enemy wanna kill me at %d,%d\n", target_point.x,
+            target_point.y);
+    return alter_move(me);
+  } else {
+    const enum move_type suggested_move = from_points_to_move(me, target_point);
+    return suggested_move;
+  }
+}
+
 int main() {
   scanf("%d", &width);
   assert(width > 0 && width <= max_width);
@@ -442,7 +418,7 @@ int main() {
   fgetc(stdin);
 
   unsigned int seed = (unsigned int)time(NULL);
-  fprintf(stderr, "ver 1.6.0, seed = %u\n", seed);
+  fprintf(stderr, "ver 1.7.0, seed = %u\n", seed);
   srand(seed);
 
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
