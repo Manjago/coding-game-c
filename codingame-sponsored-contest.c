@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/resource.h>
 #include <time.h>
 
 /*
@@ -475,13 +474,6 @@ enum move_type do_move(const struct point me) {
 }
 
 int main() {
-  struct rlimit rl;
-  if (getrlimit(RLIMIT_STACK, &rl) == 0) {
-    fprintf(stderr, "Stack size: %ld bytes\n", rl.rlim_cur);
-  } else {
-    perror("getrlimit");
-  }
-
   scanf("%d", &width);
   assert(width > 0 && width <= max_width);
   scanf("%d", &height);
