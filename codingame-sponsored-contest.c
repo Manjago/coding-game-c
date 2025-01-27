@@ -6,7 +6,8 @@
 
 /*
 
-// todo надо лучше убегать - или уж не ждать, а дергаться, или пора уже моделировать
+// todo надо лучше убегать - или уж не ждать, а дергаться, или пора уже
+моделировать
 
 _ # _ _
 0 1 2 3
@@ -41,7 +42,7 @@ enum move_type {
   move_left = 'E'
 };
 
-void decode_move(const enum move_type mt) {
+void log_move(const enum move_type mt) {
   switch (mt) {
   case move_right:
     fprintf(stderr, "RIGHT");
@@ -484,7 +485,7 @@ int main() {
     const struct point me = players[players_count - 1];
     const char move = do_move(me);
     fprintf(stderr, "turn %d, move ", turn_num);
-    decode_move(move);
+    log_move(move);
     fprintf(stderr, "\n");
     printf("%c\n", move);
   }

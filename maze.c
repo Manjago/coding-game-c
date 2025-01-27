@@ -52,6 +52,10 @@ bool point_equals(const struct point a, const struct point b) {
   return a.x == b.x && a.y == b.y;
 }
 
+int point_man_dist(const struct point a, const struct point b) {
+  return abs(a.x - b.x) + abs(a.y == b.y);
+}
+
 Point point_up(const Point point) {
   Point result = point;
   result.y = up_index(result.y);
@@ -74,6 +78,24 @@ Point point_right(const Point point) {
   Point result = point;
   result.x = right_index(result.x);
   return result;
+}
+
+struct game_state {
+  Point monsters[max_players - 1];
+  int monsters_count;
+  Point explorer;
+};
+
+typedef struct game_state GameState;
+
+int index_of_monster(const GameState *game_state, const Point point) {
+  for (int i = 0; i < game_state->monsters_count; ++i) {
+    const struct point monster = game_state->monsters[i];
+    if (point_equals(monster, point)) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 // Queue begin
@@ -141,8 +163,17 @@ void set_cell_type(Point point, CellType value) {
   grid[point.y][point.x] = grid[point.y][point.x] | value;
 }
 
-bool is_unknown_cell_type(Point point) {
-  return grid[point.y][point.x] == unknown;
+bool is_enemy_at(const Point point, const GameState *game_state) {
+  for (int i = 0; i < game_state->monsters_count; ++i) {
+    if (point_equals(game_state->monsters[i], point)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool is_unknown_cell_type(const Point point, const GameState *game_state) {
+  return grid[point.y][point.x] == unknown && !is_enemy_at(point, game_state);
 }
 
 bool has_cell_type(Point point, CellType value) {
@@ -161,7 +192,10 @@ QueueItem create(const Point pretender, const QueueItem prev) {
   return result;
 }
 
-struct point bfs(Point start) {
+typedef bool (*BfsTarget)(Point, const GameState *);
+
+struct point bfs(const Point start, const GameState *game_state,
+                 BfsTarget bfs_target) {
   int seen[max_height][max_width] = {0};
   Queue queue;
   queue_init(&queue);
@@ -174,7 +208,7 @@ struct point bfs(Point start) {
     }
     seen[current.point.y][current.point.x] = 1;
 
-    if (is_unknown_cell_type(current.point)) {
+    if (bfs_target(current.point, game_state)) {
       return current.first_move;
     }
 
@@ -199,24 +233,6 @@ struct point bfs(Point start) {
   }
 
   return undefined_point;
-}
-
-struct game_state {
-  Point monsters[max_players - 1];
-  int monsters_count;
-  Point explorer;
-};
-
-typedef struct game_state GameState;
-
-int index_of_monster(const GameState *game_state, const Point point) {
-  for (int i = 0; i < game_state->monsters_count; ++i) {
-    const struct point monster = game_state->monsters[i];
-    if (point_equals(monster, point)) {
-      return i;
-    }
-  }
-  return -1;
 }
 
 void dump_grid(const GameState *game_state) {
@@ -255,7 +271,7 @@ enum move_type {
 
 typedef enum move_type MoveType;
 
-void decode_move(const MoveType mt) {
+void log_move(const MoveType mt) {
   switch (mt) {
   case move_right:
     fprintf(stderr, "RIGHT\n");
@@ -291,13 +307,19 @@ MoveType from_points_to_move(const Point from, const Point to) {
 MoveType do_move(const GameState *game_state) {
   dump_grid(game_state);
 
-  const struct point target_point = bfs(game_state->explorer);
+  const Point target_point =
+      bfs(game_state->explorer, game_state, &is_unknown_cell_type);
   fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", game_state->explorer.x,
           game_state->explorer.y, target_point.x, target_point.y);
 
   if (point_equals(undefined_point, target_point)) {
     return move_wait;
   }
+
+  const Point nearest_enemy = bfs(target_point, game_state, &is_enemy_at);
+  const int enemy_dist = point_man_dist(target_point, nearest_enemy);
+  fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x, nearest_enemy.y,
+          enemy_dist);
 
   return from_points_to_move(game_state->explorer, target_point);
 }
@@ -377,7 +399,7 @@ int main() {
 
     const char move = do_move(&game_state);
     fprintf(stderr, "turn %d, move ", turn_num);
-    decode_move(move);
+    log_move(move);
     printf("%c\n", move);
   }
 
