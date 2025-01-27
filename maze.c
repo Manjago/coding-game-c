@@ -76,6 +76,56 @@ Point point_right(const Point point) {
   return result;
 }
 
+// Queue begin
+
+#define MAX_Q_SIZE max_height *max_width
+
+const Point undefined_point = {-1, -1};
+
+struct queue_item {
+  struct point point;
+  struct point first_move;
+};
+
+typedef struct queue_item QueueItem;
+
+struct queue {
+  QueueItem queue[MAX_Q_SIZE];
+  int front;
+  int back;
+};
+
+typedef struct queue Queue;
+
+void queue_init(Queue *q) {
+  q->front = -1;
+  q->back = -1;
+}
+
+bool queue_is_empty(const Queue *q) { return (q->front == -1); }
+
+void queue_push(Queue *q, QueueItem data) {
+  assert(q->back < (MAX_Q_SIZE - 1));
+  if (queue_is_empty(q)) {
+    q->front = 0;
+  }
+  q->back++;
+  q->queue[q->back] = data;
+}
+
+QueueItem queue_pop(Queue *q) {
+  assert(!queue_is_empty(q));
+  QueueItem data = q->queue[q->front];
+  if (q->front == q->back) {
+    q->front = -1;
+    q->back = -1;
+  } else {
+    q->front++;
+  }
+  return data;
+}
+// Queue end
+
 enum cell_type { unknown = 0, wall = 1, space = 2, explored = 4 };
 
 typedef enum cell_type CellType;
@@ -87,8 +137,68 @@ CellType from_char(const char raw_status) {
 
 CellType grid[max_height][max_width] = {0};
 
-void setCellType(Point point, CellType value) {
+void set_cell_type(Point point, CellType value) {
   grid[point.y][point.x] = grid[point.y][point.x] | value;
+}
+
+bool is_unknown_cell_type(Point point) {
+  return grid[point.y][point.x] == unknown;
+}
+
+bool has_cell_type(Point point, CellType value) {
+  return grid[point.y][point.x] & value;
+}
+
+QueueItem create(const Point pretender, const QueueItem prev) {
+
+  struct queue_item result;
+  result.point = pretender;
+  if (point_equals(undefined_point, prev.first_move)) {
+    result.first_move = pretender;
+  } else {
+    result.first_move = prev.first_move;
+  }
+  return result;
+}
+
+struct point bfs(Point start) {
+  int seen[max_height][max_width] = {0};
+  Queue queue;
+  queue_init(&queue);
+  QueueItem start_queue_item = {start, undefined_point};
+  queue_push(&queue, start_queue_item);
+  while (!queue_is_empty(&queue)) {
+    QueueItem current = queue_pop(&queue);
+    if (seen[current.point.y][current.point.x]) {
+      continue;
+    }
+    seen[current.point.y][current.point.x] = 1;
+
+    if (is_unknown_cell_type(current.point)) {
+      return current.first_move;
+    }
+
+    Point pretender;
+
+    pretender = point_up(current.point);
+    if (!has_cell_type(pretender, wall)) {
+      queue_push(&queue, create(pretender, current));
+    }
+    pretender = point_down(current.point);
+    if (!has_cell_type(pretender, wall)) {
+      queue_push(&queue, create(pretender, current));
+    }
+    pretender = point_left(current.point);
+    if (!has_cell_type(pretender, wall)) {
+      queue_push(&queue, create(pretender, current));
+    }
+    pretender = point_right(current.point);
+    if (!has_cell_type(pretender, wall)) {
+      queue_push(&queue, create(pretender, current));
+    }
+  }
+
+  return undefined_point;
 }
 
 struct game_state {
@@ -165,9 +275,31 @@ void decode_move(const MoveType mt) {
   }
 }
 
+MoveType from_points_to_move(const Point from, const Point to) {
+  if (point_equals(point_left(from), to)) {
+    return move_left;
+  } else if (point_equals(point_right(from), to)) {
+    return move_right;
+  } else if (point_equals(point_up(from), to)) {
+    return move_up;
+  } else if (point_equals(point_down(from), to)) {
+    return move_down;
+  }
+  abort();
+}
+
 MoveType do_move(const GameState *game_state) {
   dump_grid(game_state);
-  return move_up;
+
+  const struct point target_point = bfs(game_state->explorer);
+  fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", game_state->explorer.x,
+          game_state->explorer.y, target_point.x, target_point.y);
+
+  if (point_equals(undefined_point, target_point)) {
+    return move_wait;
+  }
+
+  return from_points_to_move(game_state->explorer, target_point);
 }
 
 int main() {
@@ -217,14 +349,14 @@ int main() {
       y = y % height;
       fprintf(stderr, "%d: %d %d\n", i, x, y);
       const Point pos = {x, y};
-      setCellType(pos, space);
+      set_cell_type(pos, space);
       if (i == players_count - 1) {
         game_state.explorer = pos;
-        setCellType(point_up(pos), from_char(up_status[0]));
-        setCellType(point_down(pos), from_char(down_status[0]));
-        setCellType(point_right(pos), from_char(right_status[0]));
-        setCellType(point_left(pos), from_char(left_status[0]));
-        setCellType(pos, explored);
+        set_cell_type(point_up(pos), from_char(up_status[0]));
+        set_cell_type(point_down(pos), from_char(down_status[0]));
+        set_cell_type(point_right(pos), from_char(right_status[0]));
+        set_cell_type(point_left(pos), from_char(left_status[0]));
+        set_cell_type(pos, explored);
       } else {
         game_state.monsters[i] = pos;
       }
