@@ -354,12 +354,13 @@ int main() {
       y = y % height;
       const Point pos = {x, y};
       bool moved = !point_equals(pos, prev_pos[i]);
-      prev_pos[i] = pos;
       if (moved) {
-        fprintf(stderr, "%d: %d %d MOVED\n", i, x, y);
+        fprintf(stderr, "%d: %d %d MOVED from %d %d\n", i, x, y, prev_pos[i].x,
+                prev_pos[i].y);
       } else {
         fprintf(stderr, "%d: %d %d STAY\n", i, x, y);
       }
+      prev_pos[i] = pos;
 
       set_cell_type(pos, space);
       if (i == players_count - 1) {
