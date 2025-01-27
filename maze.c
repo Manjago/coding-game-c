@@ -8,7 +8,6 @@
 int width;
 int height;
 
-
 int up_index(int j) {
   int new_value = j - 1;
   if (new_value < 0) {
@@ -102,7 +101,7 @@ typedef struct game_state GameState;
 
 int index_of_monster(const GameState *game_state, const Point point) {
   for (int i = 0; i < game_state->monsters_count; ++i) {
-    const struct point monster = game_state ->monsters[i];
+    const struct point monster = game_state->monsters[i];
     if (point_equals(monster, point)) {
       return i;
     }
@@ -134,13 +133,48 @@ void dump_grid(const GameState *game_state) {
   }
 }
 
+enum move_type {
+  move_right = 'A',
+  move_wait = 'B',
+  move_up = 'C',
+  move_down = 'D',
+  move_left = 'E'
+};
+
+typedef enum move_type MoveType;
+
+void decode_move(const MoveType mt) {
+  switch (mt) {
+  case move_right:
+    fprintf(stderr, "RIGHT\n");
+    break;
+  case move_wait:
+    fprintf(stderr, "WAIT\n");
+    break;
+  case move_up:
+    fprintf(stderr, "UP\n");
+    break;
+  case move_down:
+    fprintf(stderr, "DOWN\n");
+    break;
+  case move_left:
+    fprintf(stderr, "LEFT\n");
+    break;
+  }
+}
+
+MoveType do_move(const GameState *game_state) {
+  dump_grid(game_state);
+  return move_up;
+  }
+
 int main() {
   scanf("%d", &width);
   assert(width > 0 && width <= max_width);
   scanf("%d", &height);
   assert(height > 0 && height <= max_height);
-  scanf("%d", &players_count);
   int players_count;
+  scanf("%d", &players_count);
   assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
@@ -166,8 +200,8 @@ int main() {
     char left_status[2];
     scanf("%[^\n]", left_status);
 
-    fprintf(stderr, "up:%c, right:%c, down:%c, left:%c\n", up_status[0], right_status[0],
-            down_status[0], left_status[0]);
+    fprintf(stderr, "up:%c, right:%c, down:%c, left:%c\n", up_status[0],
+            right_status[0], down_status[0], left_status[0]);
 
     GameState game_state;
     game_state.monsters_count = players_count - 1;
@@ -193,12 +227,9 @@ int main() {
       }
     }
 
-    dump_grid(players_count);
-    const struct point me = players[players_count - 1];
-    const char move = do_move(me);
+    const char move = do_move(&game_state);
     fprintf(stderr, "turn %d, move ", turn_num);
     decode_move(move);
-    fprintf(stderr, "\n");
     printf("%c\n", move);
   }
 
