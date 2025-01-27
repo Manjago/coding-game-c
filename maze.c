@@ -116,6 +116,8 @@ void dump_grid(const GameState *game_state) {
       const int monster_index = index_of_monster(game_state, point);
       if (monster_index + 1) {
         fprintf(stderr, "%d", monster_index);
+      } else if (point_equals(game_state->explorer, point)) {
+        fprintf(stderr, "%c", '@');
       } else {
         const CellType cell_type = grid[i][j];
         if (cell_type == unknown) {
@@ -166,7 +168,7 @@ void decode_move(const MoveType mt) {
 MoveType do_move(const GameState *game_state) {
   dump_grid(game_state);
   return move_up;
-  }
+}
 
 int main() {
   scanf("%d", &width);
@@ -211,10 +213,10 @@ int main() {
       int y;
       scanf("%d%d", &x, &y);
       fgetc(stdin);
-      const int x_mod = x % width;
-      const int y_mod = y % height;
-      fprintf(stderr, "%d: %d %d -> %d %d\n", i, x, y, x_mod, y_mod);
-      const Point pos = {x_mod, y_mod};
+      x = x % width;
+      y = y % height;
+      fprintf(stderr, "%d: %d %d\n", i, x, y);
+      const Point pos = {x, y};
       setCellType(pos, space);
       if (i == players_count - 1) {
         game_state.explorer = pos;
@@ -224,6 +226,7 @@ int main() {
         setCellType(point_left(pos), from_char(left_status[0]));
       } else {
         game_state.monsters[i] = pos;
+        setCellType(pos, explored);
       }
     }
 
