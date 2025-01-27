@@ -319,6 +319,11 @@ int main() {
   fprintf(stderr, "width %d, height %d, players count %d\n", width, height,
           players_count);
 
+  Point prev_pos[players_count];
+  for (int i = 0; i < players_count; ++i) {
+    prev_pos[i] = undefined_point;
+  }
+
   // game loop
   int turn_num = 0;
   while (++turn_num) {
@@ -347,8 +352,15 @@ int main() {
       fgetc(stdin);
       x = x % width;
       y = y % height;
-      fprintf(stderr, "%d: %d %d\n", i, x, y);
       const Point pos = {x, y};
+      bool moved = !point_equals(pos, prev_pos[i]);
+      prev_pos[i] = pos;
+      if (moved) {
+        fprintf(stderr, "%d: %d %d MOVED\n", i, x, y);
+      } else {
+        fprintf(stderr, "%d: %d %d STAY\n", i, x, y);
+      }
+
       set_cell_type(pos, space);
       if (i == players_count - 1) {
         game_state.explorer = pos;
