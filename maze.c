@@ -224,9 +224,9 @@ int main() {
         setCellType(point_down(pos), from_char(down_status[0]));
         setCellType(point_right(pos), from_char(right_status[0]));
         setCellType(point_left(pos), from_char(left_status[0]));
+        setCellType(pos, explored);
       } else {
         game_state.monsters[i] = pos;
-        setCellType(pos, explored);
       }
     }
 
