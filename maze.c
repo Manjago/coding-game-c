@@ -53,7 +53,7 @@ bool point_equals(const struct point a, const struct point b) {
 }
 
 int point_man_dist(const struct point a, const struct point b) {
-  return abs(a.x - b.x) + abs(a.y == b.y);
+  return abs(a.x - b.x) + abs(a.y - b.y);
 }
 
 Point point_up(const Point point) {
@@ -243,7 +243,7 @@ void dump_grid(const GameState *game_state) {
       if (monster_index + 1) {
         fprintf(stderr, "%d", monster_index);
       } else if (point_equals(game_state->explorer, point)) {
-        fprintf(stderr, "%c", '@');
+        fprintf(stderr, "%c", 'X');
       } else {
         const CellType cell_type = grid[i][j];
         if (cell_type == unknown) {
