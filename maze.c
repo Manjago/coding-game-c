@@ -209,7 +209,9 @@ struct point bfs(const Point start, const GameState *game_state,
     seen[current.point.y][current.point.x] = 1;
 
     if (bfs_target(current.point, game_state)) {
-      return current.first_move;
+      return current.first_move; // тут ошибка, для врага надо возвращать
+                                 // current.point. Лучше не париться и
+                                 // возвращать все QueueItem
     }
 
     Point pretender;
