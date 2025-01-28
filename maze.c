@@ -194,8 +194,8 @@ QueueItem create(const Point pretender, const QueueItem prev) {
 
 typedef bool (*BfsTarget)(Point, const GameState *);
 
-struct point bfs(const Point start, const GameState *game_state,
-                 BfsTarget bfs_target) {
+QueueItem bfs(const Point start, const GameState *game_state,
+              BfsTarget bfs_target) {
   int seen[max_height][max_width] = {0};
   Queue queue;
   queue_init(&queue);
@@ -209,9 +209,7 @@ struct point bfs(const Point start, const GameState *game_state,
     seen[current.point.y][current.point.x] = 1;
 
     if (bfs_target(current.point, game_state)) {
-      return current.first_move; // тут ошибка, для врага надо возвращать
-                                 // current.point. Лучше не париться и
-                                 // возвращать все QueueItem
+      return current; 
     }
 
     Point pretender;
@@ -234,7 +232,7 @@ struct point bfs(const Point start, const GameState *game_state,
     }
   }
 
-  return undefined_point;
+  return start_queue_item;
 }
 
 void dump_grid(const GameState *game_state) {
@@ -310,7 +308,7 @@ MoveType do_move(const GameState *game_state) {
   dump_grid(game_state);
 
   const Point target_point =
-      bfs(game_state->explorer, game_state, &is_unknown_cell_type);
+      bfs(game_state->explorer, game_state, &is_unknown_cell_type).first_move;
   fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", game_state->explorer.x,
           game_state->explorer.y, target_point.x, target_point.y);
 
@@ -318,7 +316,7 @@ MoveType do_move(const GameState *game_state) {
     return move_wait;
   }
 
-  const Point nearest_enemy = bfs(target_point, game_state, &is_enemy_at);
+  const Point nearest_enemy = bfs(target_point, game_state, &is_enemy_at).point;
   const int enemy_dist = point_man_dist(target_point, nearest_enemy);
   fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x, nearest_enemy.y,
           enemy_dist);
