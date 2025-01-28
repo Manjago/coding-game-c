@@ -209,7 +209,7 @@ QueueItem bfs(const Point start, const GameState *game_state,
     seen[current.point.y][current.point.x] = 1;
 
     if (bfs_target(current.point, game_state)) {
-      return current; 
+      return current;
     }
 
     Point pretender;
@@ -300,8 +300,43 @@ MoveType from_points_to_move(const Point from, const Point to) {
     return move_up;
   } else if (point_equals(point_down(from), to)) {
     return move_down;
+  } else if (point_equals(from, to)) {
+    return move_wait;
   }
   abort();
+}
+
+Point alter_move(const GameState *game_state) {
+  Point moves[5];
+  moves[0] = game_state->explorer;
+  moves[1] = point_left(game_state->explorer);
+  moves[2] = point_right(game_state->explorer);
+  moves[3] = point_up(game_state->explorer);
+  moves[4] = point_down(game_state->explorer);
+  int current_dist = -1;
+  int pretender_index = -1;
+  for (int i = 0; i < 5; ++i) {
+    const Point current_point = moves[i];
+    if (has_cell_type(current_point, space)) {
+
+      const Point nearest_enemy =
+          bfs(current_point, game_state, &is_enemy_at).point;
+      const int enemy_dist = point_man_dist(current_point, nearest_enemy);
+      if (enemy_dist > current_dist) {
+        current_dist = enemy_dist;
+        pretender_index = i;
+      }
+    }
+  }
+
+  if (pretender_index != -1) {
+    fprintf(stderr, "escaper suggest %d,%d with dist %d\n",
+            moves[pretender_index].x, moves[pretender_index].y, current_dist);
+    return moves[pretender_index];
+  } else {
+    fprintf(stderr, "escaper suggest STAY\n");
+    return moves[0];
+  }
 }
 
 MoveType do_move(const GameState *game_state) {
@@ -321,7 +356,11 @@ MoveType do_move(const GameState *game_state) {
   fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x, nearest_enemy.y,
           enemy_dist);
 
-  return from_points_to_move(game_state->explorer, target_point);
+  if (enemy_dist <= 3) {
+    return from_points_to_move(game_state->explorer, alter_move(game_state));
+  } else {
+    return from_points_to_move(game_state->explorer, target_point);
+  }
 }
 
 int main() {
