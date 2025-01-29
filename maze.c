@@ -164,9 +164,13 @@ void set_cell_type(Point point, CellType value) {
   grid[point.y][point.x] = grid[point.y][point.x] | value;
 }
 
-bool is_enemy_at(const Point point, const GameState *game_state) {
+bool is_enemy_at(const Point point, const GameState *game_state, bool trace) {  
   for (int i = 0; i < game_state->monsters_count; ++i) {
     if (point_equals(game_state->monsters[i], point)) {
+      if (trace) {
+        fprintf(stderr, "iet: enemy %d at %d,%d\n", i,
+                game_state->monsters[i].x, game_state->monsters[i].y);
+      }
       return true;
     }
   }
@@ -178,9 +182,9 @@ bool cell_type_is(Point point, CellType value) {
 }
 
 bool target_for_bfs_move(const Point point,
-                                  const GameState *game_state) {
+                                  const GameState *game_state, bool trace) {
   return cell_type_is(point, unknown) &&
-         !is_enemy_at(point, game_state);
+         !is_enemy_at(point, game_state, trace);
 }
 
 QueueItem create(const Point pretender, const QueueItem prev) {
@@ -195,7 +199,7 @@ QueueItem create(const Point pretender, const QueueItem prev) {
   return result;
 }
 
-typedef bool (*BfsTarget)(Point, const GameState *);
+typedef bool (*BfsTarget)(Point, const GameState *, bool);
 typedef bool (*IsAllowedPoint)(const Point);
 
 bool is_allowed_for_explore(const Point point) {
@@ -220,13 +224,14 @@ QueueItem bfs(const Point start, const GameState *game_state,
     }
     seen[current.point.y][current.point.x] = 1;
 
-    if (bfs_target(current.point, game_state)) {
+    if (bfs_target(current.point, game_state, trace)) {
       return current;
+    } else {
+      if (trace) {
+        fprintf(stderr, "see %d,%d", current.point.x, current.point.y);
+      }
     }
 
-    if (trace) {
-      fprintf(stderr, "see %d,%d", current.point.x, current.point.y);
-    }
     Point pretender;
 
     pretender = point_up(current.point);
