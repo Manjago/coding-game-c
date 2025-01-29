@@ -149,13 +149,13 @@ QueueItem queue_pop(Queue *q) {
 }
 // Queue end
 
-enum cell_type { unknown = 0, wall = 1, space = 2, explored = 4 };
+enum cell_type { unknown = 0, wall = 1, space = 2 };
 
 typedef enum cell_type CellType;
 
 CellType from_char(const char raw_status) {
   assert(raw_status == '#' || raw_status == '_');
-  return (raw_status == '#') ? wall + explored : space + explored;
+  return (raw_status == '#') ? wall : space;
 }
 
 CellType grid[max_height][max_width] = {0};
@@ -173,17 +173,14 @@ bool is_enemy_at(const Point point, const GameState *game_state) {
   return false;
 }
 
-bool is_unknown_cell_type(const Point point) {
-  return grid[point.y][point.x] == unknown;
+bool cell_type_is(Point point, CellType value) {
+  return grid[point.y][point.x] == value;
 }
 
-bool is_unknown_cell_type_for_bfs(const Point point,
+bool target_for_bfs_move(const Point point,
                                   const GameState *game_state) {
-  return is_unknown_cell_type(point) && !is_enemy_at(point, game_state);
-}
-
-bool has_cell_type(Point point, CellType value) {
-  return grid[point.y][point.x] & value;
+  return cell_type_is(point, unknown) &&
+         !is_enemy_at(point, game_state);
 }
 
 QueueItem create(const Point pretender, const QueueItem prev) {
@@ -202,11 +199,11 @@ typedef bool (*BfsTarget)(Point, const GameState *);
 typedef bool (*IsAllowedPoint)(const Point);
 
 bool is_allowed_for_explore(const Point point) {
-  return !has_cell_type(point, wall);
+  return !cell_type_is(point, wall);
 }
 
 bool is_allowed_for_enemy_predict(const Point point) {
-  return !has_cell_type(point, wall) && !is_unknown_cell_type(point);
+  return cell_type_is(point, space);
 }
 
 QueueItem bfs(const Point start, const GameState *game_state,
@@ -265,10 +262,10 @@ void dump_grid(const GameState *game_state) {
           fprintf(stderr, "%c", '?');
         } else if (cell_type & wall) {
           fprintf(stderr, "%c", '#');
-        } else if (cell_type & explored) {
+        } else if (cell_type & space) {
           fprintf(stderr, "%c", '.');
-        } else { // unexplored, but space
-          fprintf(stderr, "%c", ',');
+        } else {
+          fprintf(stderr, "%c", '!');
         }
       }
     }
@@ -332,14 +329,24 @@ Point alter_move(const GameState *game_state) {
   int pretender_index = -1;
   for (int i = 0; i < 5; ++i) {
     const Point current_point = moves[i];
-    if (has_cell_type(current_point, space)) {
+    if (cell_type_is(current_point, space)) {
 
-      const Point nearest_enemy =
-          bfs(current_point, game_state, &is_enemy_at, &is_allowed_for_enemy_predict).point;
-      const int enemy_dist = point_man_dist(current_point, nearest_enemy);
-      if (enemy_dist > current_dist) {
-        current_dist = enemy_dist;
+      const QueueItem answer = bfs(current_point, game_state, &is_enemy_at,
+                                   &is_allowed_for_enemy_predict);
+
+      const bool is_valid = !point_equals(answer.first_move, undefined_point);
+
+      if (is_valid) {
+        const Point nearest_enemy = answer.point;
+        const int enemy_dist = point_man_dist(current_point, nearest_enemy);
+        if (enemy_dist > current_dist) {
+          current_dist = enemy_dist;
+          pretender_index = i;
+        }
+      } else {
+        current_dist = 100500;
         pretender_index = i;
+        break;
       }
     }
   }
@@ -357,23 +364,35 @@ Point alter_move(const GameState *game_state) {
 MoveType do_move(const GameState *game_state) {
   dump_grid(game_state);
 
-  const Point target_point =
-      bfs(game_state->explorer, game_state, &is_unknown_cell_type_for_bfs, &is_allowed_for_explore).first_move;
+  Point target_point =
+      bfs(game_state->explorer, game_state, &target_for_bfs_move,
+          &is_allowed_for_explore)
+          .first_move;
   fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", game_state->explorer.x,
           game_state->explorer.y, target_point.x, target_point.y);
 
   if (point_equals(undefined_point, target_point)) {
-    return move_wait;
+    target_point = game_state->explorer;
   }
 
-  const Point nearest_enemy =
-      bfs(target_point, game_state, &is_enemy_at, &is_allowed_for_enemy_predict)
-          .point;
-  const int enemy_dist = point_man_dist(target_point, nearest_enemy);
-  fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x, nearest_enemy.y,
-          enemy_dist);
+  const QueueItem answer = bfs(target_point, game_state, &is_enemy_at,
+                               &is_allowed_for_enemy_predict);
 
-  if (enemy_dist > 0 && enemy_dist <= 3) {
+  const bool is_valid = !point_equals(answer.first_move, undefined_point);
+
+  const Point nearest_enemy = answer.point;
+
+  int enemy_dist;
+
+  if (is_valid) {
+    enemy_dist = point_man_dist(target_point, nearest_enemy);
+    fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x,
+            nearest_enemy.y, enemy_dist);
+  } else {
+    fprintf(stderr, "no enemy for %d,%d\n", target_point.x, target_point.y);
+  }
+
+  if (is_valid && enemy_dist <= 3) {
     return from_points_to_move(game_state->explorer, alter_move(game_state));
   } else {
     return from_points_to_move(game_state->explorer, target_point);
@@ -440,14 +459,13 @@ int main() {
       }
       prev_pos[i] = pos;
 
-      set_cell_type(pos, space);
       if (i == players_count - 1) {
         game_state.explorer = pos;
+        set_cell_type(pos, space);
         set_cell_type(point_up(pos), from_char(up_status[0]));
         set_cell_type(point_down(pos), from_char(down_status[0]));
         set_cell_type(point_right(pos), from_char(right_status[0]));
         set_cell_type(point_left(pos), from_char(left_status[0]));
-        set_cell_type(pos, explored);
       } else {
         game_state.monsters[i] = pos;
       }
