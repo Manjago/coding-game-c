@@ -207,7 +207,7 @@ bool is_allowed_for_enemy_predict(const Point point) {
 }
 
 QueueItem bfs(const Point start, const GameState *game_state,
-              BfsTarget bfs_target, IsAllowedPoint is_allowed_point) {
+              BfsTarget bfs_target, IsAllowedPoint is_allowed_point, bool trace) {
   int seen[max_height][max_width] = {0};
   Queue queue;
   queue_init(&queue);
@@ -224,23 +224,41 @@ QueueItem bfs(const Point start, const GameState *game_state,
       return current;
     }
 
+    if (trace) {
+      fprintf(stderr, "see %d,%d", current.point.x, current.point.y);
+    }
     Point pretender;
 
     pretender = point_up(current.point);
     if (is_allowed_point(pretender)) {
+      if (trace) {
+        fprintf(stderr, ",up %d,%d", pretender.x, pretender.y);
+      }
       queue_push(&queue, create(pretender, current));
     }
     pretender = point_down(current.point);
     if (is_allowed_point(pretender)) {
+      if (trace) {
+        fprintf(stderr, ",down %d,%d", pretender.x, pretender.y);
+      }
       queue_push(&queue, create(pretender, current));
     }
     pretender = point_left(current.point);
     if (is_allowed_point(pretender)) {
+      if (trace) {
+        fprintf(stderr, ",left %d,%d", pretender.x, pretender.y);
+      }
       queue_push(&queue, create(pretender, current));
     }
     pretender = point_right(current.point);
     if (is_allowed_point(pretender)) {
+      if (trace) {
+        fprintf(stderr, ",right %d,%d", pretender.x, pretender.y);
+      }
       queue_push(&queue, create(pretender, current));
+    }
+    if (trace) {
+      fprintf(stderr, "\n");
     }
   }
 
@@ -332,7 +350,7 @@ Point alter_move(const GameState *game_state) {
     if (cell_type_is(current_point, space)) {
 
       const QueueItem answer = bfs(current_point, game_state, &is_enemy_at,
-                                   &is_allowed_for_enemy_predict);
+                                   &is_allowed_for_enemy_predict, false);
 
       const bool is_valid = !point_equals(answer.first_move, undefined_point);
 
@@ -366,7 +384,7 @@ MoveType do_move(const GameState *game_state) {
 
   Point target_point =
       bfs(game_state->explorer, game_state, &target_for_bfs_move,
-          &is_allowed_for_explore)
+          &is_allowed_for_explore, false)
           .first_move;
   fprintf(stderr, "from %d,%d bfs suggest %d,%d\n", game_state->explorer.x,
           game_state->explorer.y, target_point.x, target_point.y);
@@ -376,7 +394,7 @@ MoveType do_move(const GameState *game_state) {
   }
 
   const QueueItem answer = bfs(target_point, game_state, &is_enemy_at,
-                               &is_allowed_for_enemy_predict);
+                               &is_allowed_for_enemy_predict, true);
 
   const bool is_valid = !point_equals(answer.first_move, undefined_point);
 
