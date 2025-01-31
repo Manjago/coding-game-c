@@ -5,4 +5,5 @@ build
 fibo.c
 fibo
 out
+maze
 *.py
