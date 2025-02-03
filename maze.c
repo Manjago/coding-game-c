@@ -284,6 +284,8 @@ bool cell_type_is(Point point, CellType value) {
   return grid[point.y][point.x] == value;
 }
 
+CellType get_cell_type(const Point point) { return grid[point.y][point.x]; }
+
 bool target_for_bfs_move(const Point point, const GameState *game_state,
                          bool trace) {
   return cell_type_is(point, unknown) && !is_enemy_at(point, game_state, trace);
@@ -302,14 +304,24 @@ QueueItem create(const Point pretender, const QueueItem prev) {
 }
 
 typedef bool (*BfsTarget)(Point, const GameState *, bool);
-typedef bool (*IsAllowedPoint)(const Point);
+typedef bool (*IsAllowedPoint)(const Point, const GameState *, bool);
 
-bool is_allowed_for_explore(const Point point) {
-  return !cell_type_is(point, wall);
+bool is_allowed_for_explore(const Point point, const GameState * game_state, bool trace) {
+  const bool result =
+    !cell_type_is(point, wall) && !is_enemy_at(point, game_state, trace);
+  if (trace) {
+    fprintf(stderr, " iafe: %d %d ", result, get_cell_type(point));
+  }
+  return result;
 }
 
-bool is_allowed_for_enemy_predict(const Point point) {
-  return cell_type_is(point, space);
+bool is_allowed_for_enemy_predict(const Point point,
+                                  const GameState *game_state, bool trace) {
+  const bool result = cell_type_is(point, space) || is_enemy_at(point, game_state, trace);
+  if (trace) {
+    fprintf(stderr, " iafep: %d %d ", result, get_cell_type(point));
+  }
+  return result;
 }
 
 QueueItem bfs(const Point start, const GameState *game_state,
@@ -338,28 +350,28 @@ QueueItem bfs(const Point start, const GameState *game_state,
     Point pretender;
 
     pretender = point_up(current.point);
-    if (is_allowed_point(pretender)) {
+    if (is_allowed_point(pretender, game_state, trace)) {
       if (trace) {
         fprintf(stderr, ",up %d,%d", pretender.x, pretender.y);
       }
       queue_push(&queue, create(pretender, current));
     }
     pretender = point_down(current.point);
-    if (is_allowed_point(pretender)) {
+    if (is_allowed_point(pretender, game_state, trace)) {
       if (trace) {
         fprintf(stderr, ",down %d,%d", pretender.x, pretender.y);
       }
       queue_push(&queue, create(pretender, current));
     }
     pretender = point_left(current.point);
-    if (is_allowed_point(pretender)) {
+    if (is_allowed_point(pretender, game_state, trace)) {
       if (trace) {
         fprintf(stderr, ",left %d,%d", pretender.x, pretender.y);
       }
       queue_push(&queue, create(pretender, current));
     }
     pretender = point_right(current.point);
-    if (is_allowed_point(pretender)) {
+    if (is_allowed_point(pretender, game_state, trace)) {
       if (trace) {
         fprintf(stderr, ",right %d,%d", pretender.x, pretender.y);
       }
@@ -376,7 +388,7 @@ QueueItem bfs(const Point start, const GameState *game_state,
 void dump_grid(const GameState *game_state, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
-      const Point point = {j, i};
+      const Point point = (Point){j, i};
       const int monster_index = index_of_monster(game_state, point);
       if (monster_index + 1) {
         fprintf(stderr, "%d", monster_index);
@@ -501,7 +513,7 @@ MoveType do_move(const GameState *game_state) {
   }
 
   const QueueItem answer = bfs(target_point, game_state, &is_enemy_at,
-                               &is_allowed_for_enemy_predict, true);
+                               &is_allowed_for_enemy_predict, false);
 
   const bool is_valid = !point_equals(answer.first_move, undefined_point);
 
@@ -522,6 +534,13 @@ MoveType do_move(const GameState *game_state) {
   } else {
     return from_points_to_move(game_state->explorer, target_point);
   }
+}
+
+void do_and_print_move(GameState * game_state, int turn_num) {
+  const char move = do_move(game_state);
+  fprintf(stderr, "turn %d, move ", turn_num);
+  log_move(move);
+  printf("%c\n", move);
 }
 
 void game_loop() {
@@ -596,10 +615,7 @@ void game_loop() {
       }
     }
 
-    const char move = do_move(&game_state);
-    fprintf(stderr, "turn %d, move ", turn_num);
-    log_move(move);
-    printf("%c\n", move);
+    do_and_print_move(&game_state, turn_num);
   }
 }
 
@@ -613,7 +629,8 @@ void parse_maze(const char *maze[], int rows, int cols, GameState *state) {
       if (c >= '0' && c <= '9') {
         int idx = c - '0';
         if (idx < max_players - 1) {
-          state->monsters[state->monsters_count++] = (Point){x, y};
+          state->monsters[idx] = (Point){x, y};
+          state->monsters_count++;
           grid[y][x] = space;
         }
       } else if (c == 'X') {
@@ -678,6 +695,7 @@ void test1() {
   parse_maze(maze, rows, cols, &state);
 
   dump_grid(&state, rows, cols);
+  do_and_print_move(&state, -1);
 }
 
 void tests() {
