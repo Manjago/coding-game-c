@@ -431,7 +431,7 @@ Point alter_move(const GameState *game_state) {
       const bool is_valid = !point_equals(answer.first_move, undefined_point);
 
       if (is_valid) {
-        const int enemy_dist = answer.dist - 2;
+        const int enemy_dist = answer.dist - 1;
         if (enemy_dist > current_dist) {
           current_dist = enemy_dist;
           pretender_index = i;
@@ -477,9 +477,9 @@ MoveType do_move(const GameState *game_state) {
   int enemy_dist;
 
   if (is_valid) {
-    enemy_dist = answer.dist - 2;
-    fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x,
-            nearest_enemy.y, enemy_dist);
+    enemy_dist = answer.dist - 1;
+    fprintf(stderr, "enemy at %d,%d, dist %d to %d,%d\n", nearest_enemy.x,
+            nearest_enemy.y, enemy_dist, target_point.x, target_point.y);
   } else {
     fprintf(stderr, "no enemy for %d,%d\n", target_point.x, target_point.y);
   }
