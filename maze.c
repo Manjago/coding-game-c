@@ -47,6 +47,7 @@ width 35, height 28, players count 5
 3, 27 <=> 3, -1
 */
 
+// 2025-03-04  992 points
 // 2025-02-03 1060 points
 // 2025-01-28 1638 points
 #include <assert.h>
@@ -103,10 +104,6 @@ bool point_equals(const Point a, const Point b) {
   return a.x == b.x && a.y == b.y;
 }
 
-int point_man_dist(const Point a, const Point b) {
-  return abs(a.x - b.x) + abs(a.y - b.y);
-}
-
 Point point_up(const Point point) {
   Point result = point;
   result.y = up_index(result.y);
@@ -156,6 +153,7 @@ const Point undefined_point = {-1, -1};
 typedef struct {
   Point point;
   Point first_move;
+  int dist;
 } QueueItem;
 
 struct queue {
@@ -237,6 +235,7 @@ bool target_for_bfs_move(const Point point, const GameState *game_state,
 QueueItem create(const Point pretender, const QueueItem prev) {
 
   QueueItem result;
+  result.dist = prev.dist + 1;
   result.point = pretender;
   if (point_equals(undefined_point, prev.first_move)) {
     result.first_move = pretender;
@@ -273,7 +272,7 @@ QueueItem bfs(const Point start, const GameState *game_state,
   int seen[max_height][max_width] = {0};
   Queue queue;
   queue_init(&queue);
-  QueueItem start_queue_item = {start, undefined_point};
+  QueueItem start_queue_item = {start, undefined_point, 0};
   queue_push(&queue, start_queue_item);
   while (!queue_is_empty(&queue)) {
     QueueItem current = queue_pop(&queue);
@@ -418,8 +417,7 @@ Point alter_move(const GameState *game_state) {
       const bool is_valid = !point_equals(answer.first_move, undefined_point);
 
       if (is_valid) {
-        const Point nearest_enemy = answer.point;
-        const int enemy_dist = point_man_dist(current_point, nearest_enemy);
+        const int enemy_dist = answer.dist;
         if (enemy_dist > current_dist) {
           current_dist = enemy_dist;
           pretender_index = i;
@@ -465,7 +463,7 @@ MoveType do_move(const GameState *game_state) {
   int enemy_dist;
 
   if (is_valid) {
-    enemy_dist = point_man_dist(target_point, nearest_enemy);
+    enemy_dist = answer.dist;
     fprintf(stderr, "enemy at %d,%d, dist %d\n", nearest_enemy.x,
             nearest_enemy.y, enemy_dist);
   } else {
@@ -554,6 +552,7 @@ void game_loop() {
         set_cell_type(point_right(pos), from_char(right_status[0]));
         set_cell_type(point_left(pos), from_char(left_status[0]));
       } else {
+        set_cell_type(pos, space);
         game_state.monsters[i] = pos;
       }
     }
