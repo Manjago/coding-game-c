@@ -10,6 +10,7 @@
 #include <time.h>
 
 #define MY_TEST 1
+#define INFINITY 100500000
 
 int width;
 int height;
@@ -49,7 +50,7 @@ int right_index(int i) {
 enum constraints { max_width = 35, max_height = 35, max_players = 10 };
 
 typedef struct {
-  int dist[];
+  int dist[max_players];
 } MobStat;
 
 typedef struct {
@@ -90,6 +91,14 @@ typedef struct {
   Point explorer;
 } GameState;
 
+void dump_mob_stat(const MobStat mob_stat, const GameState * game_state) {
+  fprintf(stderr, "mob stat: ");
+  for (int i = 0; i < game_state -> monsters_count; ++i) {
+    fprintf(stderr, "%d:%d,", i, mob_stat.dist[i]);
+  }
+  fprintf(stderr, "\n");
+}
+
 int index_of_monster(const GameState *game_state, const Point point) {
   for (int i = 0; i < game_state->monsters_count; ++i) {
     const Point monster = game_state->monsters[i];
@@ -115,6 +124,14 @@ typedef struct {
   Point first_move;
   int dist;
 } QueueItem;
+
+int effective_dist_to_enemy(const QueueItem queue_item) {
+  if (queue_item.dist > 0) {
+    return queue_item.dist - 1;
+  } else {
+    return 0;
+  }
+}
 
 struct queue {
   QueueItem queue[MAX_Q_SIZE];
@@ -401,6 +418,28 @@ MoveType from_points_to_move(const Point from, const Point to) {
   abort();
 }
 
+int sum_mob_stat(const MobStat mob_stat, const GameState * game_state) {
+  int result = 0;
+  for (int i = 0; i < game_state->monsters_count; ++i) {
+    int dist = mob_stat.dist[i];
+    if (dist >= 0) {
+      result += dist;
+    }
+  }
+  return result;
+}
+
+int min_mob_stat(const MobStat mob_stat, const GameState * game_state) {
+  int result = INFINITY;
+  for (int i = 0; i < game_state->monsters_count; ++i) {
+    int dist = mob_stat.dist[i];
+    if (dist >= 0 && dist < result) {
+      result = dist;
+    }
+  }
+  return result;
+}
+
 Point alter_move(const GameState *game_state) {
   Point moves[5];
   moves[0] = game_state->explorer;
@@ -408,40 +447,47 @@ Point alter_move(const GameState *game_state) {
   moves[2] = point_right(game_state->explorer);
   moves[3] = point_up(game_state->explorer);
   moves[4] = point_down(game_state->explorer);
-  int current_dist = -1;
+  int current_scoring = -1;
   int pretender_index = -1;
   for (int i = 0; i < 5; ++i) {
     const Point current_point = moves[i];
     if (cell_type_is(current_point, ct_space)) {
 
-      MobStat mobStat;
+      MobStat mob_stat;
       for (int m = 0; m < game_state->monsters_count; ++m) {
-        bfs(game_state->monsters[m], game_state, &is_explorer,
-            &is_allowed_for_enemy_move, false);
-      }
+        const QueueItem proximity_check =
+            bfs(game_state->monsters[m], game_state, &is_explorer,
+                &is_allowed_for_enemy_move, false);
 
-      const QueueItem answer = bfs(current_point, game_state, &is_enemy_at,
-                                   &is_allowed_for_enemy_predict, false);
-
-      const bool is_valid = !is_valid_queue_item(answer);
-
-      if (is_valid) {
-        const int enemy_dist = answer.dist - 1;
-        if (enemy_dist > current_dist) {
-          current_dist = enemy_dist;
-          pretender_index = i;
+        if (is_valid_queue_item(proximity_check)) {
+            mob_stat.dist[m] = effective_dist_to_enemy(proximity_check);
+        } else {
+          mob_stat.dist[m] = -1;
         }
-      } else {
-        current_dist = 100500;
+      }
+      fprintf(stderr, "for %d,%d ", current_point.x, current_point.y);
+      dump_mob_stat(mob_stat, game_state);
+
+      const int min = min_mob_stat(mob_stat, game_state);
+      const bool really_no_enemies = min == INFINITY;
+      if (really_no_enemies) {
+        current_scoring = INFINITY;
         fprintf(stderr, "no escaper moves\n");
         break;
+      } else {
+        const int sum = sum_mob_stat(mob_stat, game_state);
+        const int scoring =  min*100000 + sum;
+        if (scoring > current_scoring) {
+          current_scoring = scoring;
+          pretender_index = i;
+        }
       }
     }
   }
 
   if (pretender_index != -1) {
-    fprintf(stderr, "escaper suggest %d,%d with dist %d\n",
-            moves[pretender_index].x, moves[pretender_index].y, current_dist);
+    fprintf(stderr, "escaper suggest %d,%d with scoring %d\n",
+            moves[pretender_index].x, moves[pretender_index].y, current_scoring);
     return moves[pretender_index];
   } else {
     fprintf(stderr, "escaper suggest STAY\n");
@@ -475,7 +521,7 @@ MoveType do_move(const GameState *game_state) {
   int enemy_dist;
 
   if (is_valid) {
-    enemy_dist = enemy_checker.dist - 1;
+    enemy_dist = effective_dist_to_enemy(enemy_checker);
     fprintf(stderr, "enemy at %d,%d, dist %d to %d,%d\n", nearest_enemy.x,
             nearest_enemy.y, enemy_dist, suggested_by_bfs.x,
             suggested_by_bfs.y);
