@@ -479,7 +479,8 @@ Point alter_move(const GameState *game_state) {
         break;
       } else {
         const int sum = sum_mob_stat(mob_stat, game_state);
-        const int scoring =  min*100000 + sum;
+        //const int scoring =  min*100000 + sum;
+        const int scoring =  sum;
         if (scoring > current_scoring) {
           current_scoring = scoring;
           pretender_index = i;
