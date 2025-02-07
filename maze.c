@@ -199,10 +199,12 @@ void set_cell_type(Point point, CellType value) {
   }
 }
 
-bool is_explorer(const Point point, const GameState *game_state, bool trace) {
-  bool result = point_equals(point, game_state->explorer);
+Point lame_proximity_check;
+bool is_lame_proximity_check(const Point point, const GameState *game_state, bool trace) {
+  bool result = point_equals(point, lame_proximity_check);
   if (trace) {
-    fprintf(stderr, "is_explorer %d\n", result);
+    fprintf(stderr, "is_lame %d for ex %d,%d\n", result, game_state->explorer.x,
+            game_state->explorer.y);
   }
   return result;
 }
@@ -455,8 +457,9 @@ Point alter_move(const GameState *game_state) {
 
       MobStat mob_stat;
       for (int m = 0; m < game_state->monsters_count; ++m) {
+        lame_proximity_check = current_point;
         const QueueItem proximity_check =
-            bfs(game_state->monsters[m], game_state, &is_explorer,
+            bfs(game_state->monsters[m], game_state, &is_lame_proximity_check,
                 &is_allowed_for_enemy_move, false);
 
         if (is_valid_queue_item(proximity_check)) {
