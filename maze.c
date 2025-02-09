@@ -57,6 +57,34 @@ typedef struct {
   int x, y;
 } Point;
 
+enum cell_type { ct_unknown = 0, ct_wall = 1, ct_space = 2 };
+
+typedef enum cell_type CellType;
+
+CellType from_char(const char raw_status) {
+  assert(raw_status == '#' || raw_status == '_');
+  return (raw_status == '#') ? ct_wall : ct_space;
+}
+
+void set_cell_type(CellType grid[max_height][max_width], Point point,
+                   CellType value) {
+  const CellType old_value = grid[point.y][point.x];
+  grid[point.y][point.x] = value;
+  if (old_value == ct_unknown) {
+    switch (value) {
+    case ct_unknown:
+      fprintf(stderr, "now %d,%d still unknow???\n", point.x, point.y);
+      break;
+    case ct_wall:
+      fprintf(stderr, "now %d,%d WALL\n", point.x, point.y);
+      break;
+    case ct_space:
+      fprintf(stderr, "now %d,%d SPACE\n", point.x, point.y);
+      break;
+    }
+  }
+}
+
 bool point_equals(const Point a, const Point b) {
   return a.x == b.x && a.y == b.y;
 }
@@ -89,6 +117,7 @@ typedef struct {
   Point monsters[max_players - 1];
   int monsters_count;
   Point explorer;
+  CellType grid[max_height][max_width];
 } GameState;
 
 void dump_mob_stat(const MobStat mob_stat, const GameState * game_state) {
@@ -170,35 +199,6 @@ QueueItem queue_pop(Queue *q) {
 }
 // Queue end
 
-enum cell_type { ct_unknown = 0, ct_wall = 1, ct_space = 2 };
-
-typedef enum cell_type CellType;
-
-CellType from_char(const char raw_status) {
-  assert(raw_status == '#' || raw_status == '_');
-  return (raw_status == '#') ? ct_wall : ct_space;
-}
-
-CellType grid[max_height][max_width] = {0};
-
-void set_cell_type(Point point, CellType value) {
-  const CellType old_value = grid[point.y][point.x];
-  grid[point.y][point.x] = value;
-  if (old_value == ct_unknown) {
-    switch (value) {
-    case ct_unknown:
-      fprintf(stderr, "now %d,%d still unkonow???\n", point.x, point.y);
-      break;
-    case ct_wall:
-      fprintf(stderr, "now %d,%d WALL\n", point.x, point.y);
-      break;
-    case ct_space:
-      fprintf(stderr, "now %d,%d SPACE\n", point.x, point.y);
-      break;
-    }
-  }
-}
-
 Point lame_proximity_check;
 bool is_lame_proximity_check(const Point point, const GameState *game_state, bool trace) {
   bool result = point_equals(point, lame_proximity_check);
@@ -222,15 +222,20 @@ bool is_enemy_at(const Point point, const GameState *game_state, bool trace) {
   return false;
 }
 
-bool cell_type_is(Point point, CellType value) {
+bool cell_type_is(
+    const CellType grid[max_height][max_width], Point point,
+    CellType value) {
   return grid[point.y][point.x] == value;
 }
 
-CellType get_cell_type(const Point point) { return grid[point.y][point.x]; }
+CellType get_cell_type(
+    const CellType grid[max_height][max_width], const Point point) {
+  return grid[point.y][point.x];
+}
 
 bool target_for_bfs_move(const Point point, const GameState *game_state,
                          bool trace) {
-  return cell_type_is(point, ct_unknown) &&
+  return cell_type_is(game_state -> grid, point, ct_unknown) &&
          !is_enemy_at(point, game_state, trace);
 }
 
@@ -260,30 +265,32 @@ typedef bool (*IsAllowedPoint)(const Point, const GameState *, bool);
 
 bool is_allowed_for_explore(const Point point, const GameState *game_state,
                             bool trace) {
-  const bool result =
-      !cell_type_is(point, ct_wall) && !is_enemy_at(point, game_state, trace);
+  const bool result = !cell_type_is(game_state -> grid, point, ct_wall) &&
+                      !is_enemy_at(point, game_state, trace);
   if (trace) {
-    fprintf(stderr, " iafe: %d %d ", result, get_cell_type(point));
+    fprintf(stderr, " iafe: %d %d ", result,
+            get_cell_type(game_state->grid, point));
   }
   return result;
 }
 
 bool is_allowed_for_enemy_predict(const Point point,
                                   const GameState *game_state, bool trace) {
-  const bool result =
-      cell_type_is(point, ct_space) || is_enemy_at(point, game_state, trace);
+  const bool result = cell_type_is(game_state -> grid, point, ct_space) ||
+                      is_enemy_at(point, game_state, trace);
   if (trace) {
-    fprintf(stderr, " iafep: %d %d ", result, get_cell_type(point));
+    fprintf(stderr, " iafep: %d %d ", result,
+            get_cell_type(game_state->grid, point));
   }
   return result;
 }
 
 bool is_allowed_for_enemy_move(const Point point, const GameState *game_state,
                                bool trace) {
-  const bool result = cell_type_is(point, ct_space);
+  const bool result = cell_type_is(game_state -> grid, point, ct_space);
   if (trace) {
-    fprintf(stderr, " iaem: %d %d %d ", result, get_cell_type(point),
-            game_state->monsters_count);
+    fprintf(stderr, " iaem: %d %d %d ", result,
+            get_cell_type(game_state->grid, point), game_state->monsters_count);
   }
   return result;
 }
@@ -359,7 +366,7 @@ void dump_grid(const GameState *game_state, int rows, int cols) {
       } else if (point_equals(game_state->explorer, point)) {
         fprintf(stderr, "%c", 'X');
       } else {
-        const CellType cell_type = grid[i][j];
+        const CellType cell_type = game_state -> grid[i][j];
         if (cell_type == ct_unknown) {
           fprintf(stderr, "%c", '?');
         } else if (cell_type & ct_wall) {
@@ -453,7 +460,7 @@ Point alter_move(const GameState *game_state) {
   int pretender_index = -1;
   for (int i = 0; i < 5; ++i) {
     const Point current_point = moves[i];
-    if (cell_type_is(current_point, ct_space)) {
+    if (cell_type_is(game_state -> grid, current_point, ct_space)) {
 
       MobStat mob_stat;
       for (int m = 0; m < game_state->monsters_count; ++m) {
@@ -548,6 +555,12 @@ void do_and_print_move(GameState *game_state, int turn_num) {
   printf("%c\n", move);
 }
 
+void update_grid(GameState *game_state,
+                 CellType external_grid[max_height][max_width]) {
+  memcpy(game_state->grid, external_grid,
+         sizeof(CellType) * max_height * max_width);
+}
+
 void game_loop() {
   scanf("%d", &width);
   assert(width > 0 && width <= max_width);
@@ -569,6 +582,8 @@ void game_loop() {
   for (int i = 0; i < players_count; ++i) {
     prev_pos[i] = undefined_point;
   }
+
+  CellType stable_grid[max_height][max_width] = {0};
 
   // game loop
   int turn_num = 0;
@@ -610,16 +625,17 @@ void game_loop() {
 
       if (i == players_count - 1) {
         game_state.explorer = pos;
-        set_cell_type(pos, ct_space);
-        set_cell_type(point_up(pos), from_char(up_status[0]));
-        set_cell_type(point_down(pos), from_char(down_status[0]));
-        set_cell_type(point_right(pos), from_char(right_status[0]));
-        set_cell_type(point_left(pos), from_char(left_status[0]));
+        set_cell_type(stable_grid, pos, ct_space);
+        set_cell_type(stable_grid, point_up(pos), from_char(up_status[0]));
+        set_cell_type(stable_grid, point_down(pos), from_char(down_status[0]));
+        set_cell_type(stable_grid, point_right(pos), from_char(right_status[0]));
+        set_cell_type(stable_grid, point_left(pos), from_char(left_status[0]));
       } else {
-        set_cell_type(pos, ct_space);
+        set_cell_type(stable_grid, pos, ct_space);
         game_state.monsters[i] = pos;
       }
     }
+    update_grid(&game_state, stable_grid);
 
     do_and_print_move(&game_state, turn_num);
   }
@@ -637,24 +653,24 @@ void parse_maze(const char *maze[], int rows, int cols, GameState *state) {
         if (idx < max_players - 1) {
           state->monsters[idx] = (Point){x, y};
           state->monsters_count++;
-          grid[y][x] = ct_space;
+          state -> grid[y][x] = ct_space;
         }
       } else if (c == 'X') {
         state->explorer = (Point){x, y};
-        grid[y][x] = ct_space;
+        state->grid[y][x] = ct_space;
       } else {
         switch (c) {
         case '#':
-          grid[y][x] = ct_wall;
+          state->grid[y][x] = ct_wall;
           break;
         case '.':
-          grid[y][x] = ct_space;
+          state->grid[y][x] = ct_space;
           break;
         case '?':
-          grid[y][x] = ct_unknown;
+          state->grid[y][x] = ct_unknown;
           break;
         default:
-          grid[y][x] = ct_unknown;
+          state->grid[y][x] = ct_unknown;
         }
       }
     }
