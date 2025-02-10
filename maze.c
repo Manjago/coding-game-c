@@ -57,7 +57,7 @@ int right_index(int i) {
   return new_value;
 }
 
-enum constraints {
+enum {
   max_width = 35,
   max_height = 35,
   max_players = 10,
@@ -127,6 +127,21 @@ Point point_right(const Point point) {
   result.x = right_index(result.x);
   return result;
 }
+
+typedef enum { first_dir = 0, up_dir = 0, left_dir = 1, right_dir = 2, down_dir = 3, last_dir = 3 } PointDir;
+
+const char *directions[4] = {[up_dir] = "up",
+                             [left_dir] = "left",
+                             [right_dir] = "right",
+                             [down_dir] = "down"};
+
+typedef Point (*PointGen)(const Point);
+const PointGen dir_funcs[5] = {
+    [up_dir] = point_up,
+    [left_dir] = point_left,
+    [right_dir] = point_right,
+    [down_dir] = point_down
+};
 
 typedef struct {
   Point monsters[max_players - 1];
@@ -334,34 +349,14 @@ QueueItem bfs(const Point start, const GameState *game_state,
     }
 
     Point pretender;
-
-    pretender = point_up(current.point);
-    if (is_allowed_point(pretender, game_state, trace)) {
-      if (trace) {
-        fprintf(stderr, ",up %d,%d", pretender.x, pretender.y);
+    for (PointDir i = first_dir; i <= last_dir; ++i) {
+      pretender = dir_funcs[i](current.point);
+      if (is_allowed_point(pretender, game_state, trace)) {
+        if (trace) {
+          fprintf(stderr, ",%s %d,%d", directions[i], pretender.x, pretender.y);
+        }
+        queue_push(&queue, create(pretender, current));
       }
-      queue_push(&queue, create(pretender, current));
-    }
-    pretender = point_down(current.point);
-    if (is_allowed_point(pretender, game_state, trace)) {
-      if (trace) {
-        fprintf(stderr, ",down %d,%d", pretender.x, pretender.y);
-      }
-      queue_push(&queue, create(pretender, current));
-    }
-    pretender = point_left(current.point);
-    if (is_allowed_point(pretender, game_state, trace)) {
-      if (trace) {
-        fprintf(stderr, ",left %d,%d", pretender.x, pretender.y);
-      }
-      queue_push(&queue, create(pretender, current));
-    }
-    pretender = point_right(current.point);
-    if (is_allowed_point(pretender, game_state, trace)) {
-      if (trace) {
-        fprintf(stderr, ",right %d,%d", pretender.x, pretender.y);
-      }
-      queue_push(&queue, create(pretender, current));
     }
     if (trace) {
       fprintf(stderr, "\n");
@@ -465,38 +460,59 @@ int min_mob_stat(const MobStat mob_stat, const GameState *game_state) {
 }
 
 int simulate_turns(Point pretender, GameState *game_state, int max_depth) {
+  fprintf(stderr, "pretender  %d,%d, x=%d,%d, depth=%d\n", pretender.x,
+          pretender.y, game_state->explorer.x,
+          game_state -> explorer.y, max_depth);
   return 1;
 }
 
 Point alter_move_2(clock_t start_t, const GameState *real_game_state) {
 
-  Point pretender = real_game_state->explorer;
-  int pretender_scoring = 0;
-
   Point moves[5];
+  int attempts[5] = {0};
+  int scorings[5] = {0};
   int moves_count = 0;
-  moves[moves_count++] = real_game_state->explorer;
-  Point current_point = point_left(real_game_state->explorer);
-  if (cell_type_is(real_game_state->grid, current_point, ct_space)) {
-    moves[moves_count++] = current_point;
+
+  for (PointDir i = first_dir; i <= last_dir; ++i) {
+    const Point current_point = dir_funcs[i](real_game_state->explorer);
+    if (cell_type_is(real_game_state->grid, current_point, ct_space)) {
+      moves[moves_count++] = current_point;
+    }
   }
+  moves[moves_count++] = real_game_state->explorer;
 
   if (moves_count == 1) {
     return moves[0];
   }
 
   while (has_time(start_t, clock(), response_time_ms)) {
+    const int current_index = rand() % moves_count;
     Point first_move = moves[rand() % moves_count];
     GameState temp_game_state = *real_game_state;
     const int scoring = simulate_turns(first_move, &temp_game_state, 10);
+    attempts[current_index]++;
+    scorings[current_index] += scoring;
+  }
+
+  int pretender_index = -1;
+  double pretender_scoring = -1.;
+  for (PointDir i = first_dir; i <= last_dir; ++i) {
+    if (attempts[i] == 0) {
+      continue;
+    }
+
+    const double scoring = ((double)scorings[i]) / attempts[i];
     if (scoring > pretender_scoring) {
-      pretender = first_move;
       pretender_scoring = scoring;
+      pretender_index = i;
     }
   }
 
-  fprintf(stderr, "escaper2 suggest %d,%d with scoring %d\n", pretender.x,
-          pretender.y, pretender_scoring);
+  assert(pretender_index >= 0);
+  Point pretender = moves[pretender_index];
+
+  fprintf(stderr, "escaper2 suggest %d,%d with scoring %f (%d attempts)\n", pretender.x,
+            pretender.y, pretender_scoring, attempts[pretender_index]);
   return pretender;
 }
 
