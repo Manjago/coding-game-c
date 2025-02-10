@@ -258,9 +258,9 @@ bool cell_type_is(const CellType grid[max_height][max_width], Point point,
   return grid[point.y][point.x] == value;
 }
 
-CellType get_cell_type(const CellType grid[max_height][max_width],
+CellType get_cell_type(const GameState * game_state, 
                        const Point point) {
-  return grid[point.y][point.x];
+  return game_state -> grid[point.y][point.x];
 }
 
 bool target_for_bfs_move(const Point point, const GameState *game_state,
@@ -299,7 +299,7 @@ bool is_allowed_for_explore(const Point point, const GameState *game_state,
                       !is_enemy_at(point, game_state, trace);
   if (trace) {
     fprintf(stderr, " iafe: %d %d ", result,
-            get_cell_type(game_state->grid, point));
+            get_cell_type(game_state, point));
   }
   return result;
 }
@@ -310,7 +310,7 @@ bool is_allowed_for_enemy_predict(const Point point,
                       is_enemy_at(point, game_state, trace);
   if (trace) {
     fprintf(stderr, " iafep: %d %d ", result,
-            get_cell_type(game_state->grid, point));
+            get_cell_type(game_state, point));
   }
   return result;
 }
@@ -320,7 +320,7 @@ bool is_allowed_for_enemy_move(const Point point, const GameState *game_state,
   const bool result = cell_type_is(game_state->grid, point, ct_space);
   if (trace) {
     fprintf(stderr, " iaem: %d %d %d ", result,
-            get_cell_type(game_state->grid, point), game_state->monsters_count);
+            get_cell_type(game_state, point), game_state->monsters_count);
   }
   return result;
 }
@@ -459,10 +459,27 @@ int min_mob_stat(const MobStat mob_stat, const GameState *game_state) {
   return result;
 }
 
+bool is_any_neighbours_contain_enemy(const Point point, GameState *game_state) {
+  for (PointDir i = first_dir; i <= last_dir; ++i) {
+    const Point pretender = dir_funcs[i](point);
+    if (is_enemy_at(pretender, game_state, false)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int simulate_turns(Point pretender, GameState *game_state, int max_depth) {
-  fprintf(stderr, "pretender  %d,%d, x=%d,%d, depth=%d\n", pretender.x,
-          pretender.y, game_state->explorer.x,
-          game_state -> explorer.y, max_depth);
+  assert(get_cell_type(game_state, pretender) == ct_space);
+
+  if (max_depth == 0) {
+    return 0;
+  }
+
+  if (is_any_neighbours_contain_enemy(pretender, game_state)) {
+    return 0;
+  }
+  
   return 1;
 }
 
