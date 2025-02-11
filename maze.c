@@ -85,19 +85,6 @@ void set_cell_type(CellType grid[max_height][max_width], Point point,
                    CellType value) {
   const CellType old_value = grid[point.y][point.x];
   grid[point.y][point.x] = value;
-  if (old_value == ct_unknown) {
-    switch (value) {
-    case ct_unknown:
-      fprintf(stderr, "now %d,%d still unknow???\n", point.x, point.y);
-      break;
-    case ct_wall:
-      fprintf(stderr, "now %d,%d WALL\n", point.x, point.y);
-      break;
-    case ct_space:
-      fprintf(stderr, "now %d,%d SPACE\n", point.x, point.y);
-      break;
-    }
-  }
 }
 
 bool point_equals(const Point a, const Point b) {
