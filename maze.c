@@ -86,7 +86,6 @@ CellType from_char(const char raw_status) {
 
 void set_cell_type(CellType grid[max_height][max_width], Point point,
                    CellType value) {
-  const CellType old_value = grid[point.y][point.x];
   grid[point.y][point.x] = value;
 }
 
@@ -416,14 +415,19 @@ void log_move(const MoveType mt) {
 
 MoveType from_points_to_move(const Point from, const Point to) {
   if (point_equals(point_left(from), to)) {
+    fprintf(stderr, "%d,%d->%d,%d is left\n", from.x, from.y, to.x, to.y);
     return move_left;
   } else if (point_equals(point_right(from), to)) {
+    fprintf(stderr, "%d,%d->%d,%d is right\n", from.x, from.y, to.x, to.y);
     return move_right;
   } else if (point_equals(point_up(from), to)) {
+    fprintf(stderr, "%d,%d->%d,%d is up\n", from.x, from.y, to.x, to.y);
     return move_up;
   } else if (point_equals(point_down(from), to)) {
+    fprintf(stderr, "%d,%d->%d,%d is down\n", from.x, from.y, to.x, to.y);
     return move_down;
   } else if (point_equals(from, to)) {
+    fprintf(stderr, "%d,%d->%d,%d is stay\n", from.x, from.y, to.x, to.y);
     return move_wait;
   }
   abort();
@@ -690,7 +694,8 @@ void game_loop() {
   assert(players_count > 0 && players_count <= max_players);
   fgetc(stdin);
 
-  unsigned int seed = (unsigned int)time(NULL);
+  //unsigned int seed = (unsigned int)time(NULL);
+  unsigned int seed = (unsigned int)1739300101;
   fprintf(stderr, "ver 1.0.0, seed = %u\n", seed);
   srand(seed);
 
