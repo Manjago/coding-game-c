@@ -371,7 +371,7 @@ from 11,1 bfs suggest 10,1
 enemy at 10,2, dist 0 to 10,1
 esc2 10,1 6637 attempts, scoring 0.525991
 esc2 12,1 6425 attempts, scoring 0.514397
-esc2 11,2 6457 attempts, scoring 0.532136
+esc2 11,2 6457 attempts, scoring 0.532136                  WTF?
 escaper2 suggest 11,2 with scoring 0.532136 (6457 attempts)
 11,1->11,2 is down
 turn 8, move DOWN
