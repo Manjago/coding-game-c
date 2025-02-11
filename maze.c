@@ -1,4 +1,5 @@
 // need calc all enemy dist and use wih all dist
+// 2025-03-11  662 points
 // 2025-03-11  832 points
 // 2025-03-11  678 points
 // 2025-03-04  992 points
@@ -658,7 +659,7 @@ MoveType do_move(clock_t start_t, const GameState *game_state) {
             suggested_by_bfs.y);
   }
 
-  if (is_valid && enemy_dist <= 5) {
+  if (is_valid && enemy_dist <= 12) {
     return from_points_to_move(game_state->explorer,
                                alter_move_2(start_t, game_state));
   } else {
